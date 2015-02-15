@@ -497,9 +497,10 @@ int MOAIBulletBody::_ForceActivationState ( lua_State* L ) {
 //----------------------------------------------------------------//
 int MOAIBulletBody::_SetKinematic ( lua_State* L ) {
 		
-	MOAI_LUA_SETUP ( MOAIBulletBody, "U" )	;
-		self->mBody->setCollisionFlags( self->mBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-		self->mBody->setActivationState(DISABLE_DEACTIVATION);
+MOAI_LUA_SETUP ( MOAIBulletBody, "U" )	;
+self->mBody->setCollisionFlags( self->mBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+self->mBody->setActivationState(DISABLE_DEACTIVATION);
+return 0;
 
 
 };
@@ -593,13 +594,17 @@ MOAIBulletBody::MOAIBulletBody () :
 	mBody ( 0 ),
 	mMotion( 0 ),
 	mCompound( 0 ),
-	mRot(0,0,0),
-	mLoc(0,0,0),
+	mRot(0),
+	mLoc(0),
 	idName("id"),
 	mCollision_group(DEFAULT_COLLISION_GROUP),
 	mCollision_mask(DEFAULT_COLLISION_MASK)
 {
 	
+ mRot = new btVector3(0, 0, 0);
+ mLoc = new btVector3(0, 0, 0);
+
+
 RTTI_BEGIN
 	RTTI_EXTEND ( MOAILuaObject )
 	RTTI_EXTEND ( MOAITransformBase )		
@@ -608,6 +613,9 @@ RTTI_END
 //----------------------------------------------------------------//
 MOAIBulletBody::~MOAIBulletBody () {
 	printf("\nMOAIBulletBody::~MOAIBulletBody\n");
+	 delete(mRot);
+	 delete(mLoc);
+
 	this->Destroy ();	
 }
 //----------------------------------------------------------------//
@@ -759,14 +767,14 @@ return 0;
 int	MOAIBulletBody::_StateSet( lua_State* L ){
 MOAI_LUA_SETUP ( MOAIBulletBody, "U" )	
 	btVector3 origine = self->mBody->getWorldTransform().getOrigin();
-	self->mLoc.setX(origine.x());
-	self->mLoc.setY(origine.y());
-	self->mLoc.setZ(origine.z());
+	self->mLoc->setX(origine.x());
+	self->mLoc->setY(origine.y());
+	self->mLoc->setZ(origine.z());
 
 	btQuaternion rotation = self->mBody->getWorldTransform().getRotation();
-	self->mRot.setX(rotation.x());
-	self->mRot.setX(rotation.y());
-	self->mRot.setX(rotation.z());
+	self->mRot->setX(rotation.x());
+	self->mRot->setX(rotation.y());
+	self->mRot->setX(rotation.z());
 
 return 0;
 };
@@ -785,8 +793,8 @@ MOAI_LUA_SETUP ( MOAIBulletBody, "U" )
 	//ORIGIN
 	btTransform	tr;
 	tr.setIdentity();
-	tr.setOrigin ( btVector3 ( (self->mLoc.getX()),(self->mLoc.getY()),(self->mLoc.getZ())) );
-	tr.setRotation ( btQuaternion ( self->mRot.getX(),self->mRot.getY(),self->mRot.getZ() ) ); 
+	tr.setOrigin ( btVector3 ( (self->mLoc->getX()),(self->mLoc->getY()),(self->mLoc->getZ())) );
+	tr.setRotation ( btQuaternion ( self->mRot->getX(),self->mRot->getY(),self->mRot->getZ() ) ); 
 	self->mBody->setWorldTransform(tr); 
 
 	//PROXIES

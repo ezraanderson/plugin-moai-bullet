@@ -127,9 +127,9 @@ int MOAIBulletShape::_SetPosition ( lua_State* L ) {
 	float mLoc_x	= state.GetValue < float >( 2, 0.0f );	
 	float mLoc_y	= state.GetValue < float >( 3, 0.0f ); 
 	float mLoc_z	= state.GetValue < float >( 4, 0.0f ); 
-	self->mLoc.setX(mLoc_x);
-	self->mLoc.setY(mLoc_y);
-	self->mLoc.setZ(mLoc_z);
+	self->mLoc->setX(mLoc_x);
+	self->mLoc->setY(mLoc_y);
+	self->mLoc->setZ(mLoc_z);
 	return 0;
 };
 //----------------------------------------------------------------//
@@ -138,9 +138,9 @@ MOAI_LUA_SETUP ( MOAIBulletShape, "U" )
 	float mRot_x	= state.GetValue < float >( 2, 0.0f );	
 	float mRot_y	= state.GetValue < float >( 3, 0.0f ); 
 	float mRot_z	= state.GetValue < float >( 4, 0.0f ); 	
-	self->mRot.setX(mRot_x);
-	self->mRot.setY(mRot_y);
-	self->mRot.setZ(mRot_z);
+	self->mRot->setX(mRot_x);
+	self->mRot->setY(mRot_y);
+	self->mRot->setZ(mRot_z);
 	return 0;
 
 };
@@ -164,8 +164,8 @@ int MOAIBulletShape::_addToBody ( lua_State* L ) {
 MOAI_LUA_SETUP ( MOAIBulletShape, "U" )
 	btTransform t; 
 	t.setIdentity();
-	t.setOrigin ( btVector3 ( (self->mLoc.getX()),(self->mLoc.getY()),(self->mLoc.getZ())) );
-	t.setRotation ( btQuaternion ( self->mRot.getX(),self->mRot.getY(),self->mRot.getZ() ) ); 
+	t.setOrigin ( btVector3 ( (self->mLoc->getX()),(self->mLoc->getY()),(self->mLoc->getZ())) );
+	t.setRotation ( btQuaternion ( self->mRot->getX(),self->mRot->getY(),self->mRot->getZ() ) ); 
 
 	self->mCompound->addChildShape(t,self->mShape); //MAKE FRIEND CLASS
 return 0;
@@ -180,17 +180,24 @@ void MOAIBulletShape::Destroy () {
 }
 //----------------------------------------------------------------//
 MOAIBulletShape::MOAIBulletShape () :
-mRot(0,0,0),
-mLoc(0,0,0),
+mRot(0),
+mLoc(0),
 mShape(0)
 {	
 	RTTI_BEGIN
 		RTTI_EXTEND ( MOAILuaObject )
 	RTTI_END	
+
+	 mRot = new btVector3(0, 0, 0);
+	 mLoc = new btVector3(0, 0, 0);
+
 };
 //----------------------------------------------------------------//
 MOAIBulletShape::~MOAIBulletShape () {
 	printf(" \nMOAIBulletShape::~MOAIBulletShape\n");
+
+	delete mRot;
+	delete mLoc;
 	this->Destroy ();
 }
 //----------------------------------------------------------------//
@@ -224,16 +231,16 @@ luaL_register ( state, 0, regTable );
 }
 //----------------------------------------------------------------//
 void MOAIBulletShape::setOrigin	(float loc_x,float loc_y,float loc_z) {
-	this->mLoc.setX(loc_x);
-	this->mLoc.setY(loc_y);
-	this->mLoc.setZ(loc_z);
+	this->mLoc->setX(loc_x);
+	this->mLoc->setY(loc_y);
+	this->mLoc->setZ(loc_z);
 
 };
 //----------------------------------------------------------------//
 void MOAIBulletShape::setEulerZYX	(float rot_x,float rot_y,float rot_z) {
-	this->mRot.setX(rot_x);
-	this->mRot.setY(rot_y);
-	this->mRot.setZ(rot_z);
+	this->mRot->setX(rot_x);
+	this->mRot->setY(rot_y);
+	this->mRot->setZ(rot_z);
 };
 //----------------------------------------------------------------//
 void MOAIBulletShape::setBody (btRigidBody*		mBody) {

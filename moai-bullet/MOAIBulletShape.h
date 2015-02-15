@@ -27,8 +27,8 @@ private:
 	float mLoc_z;
 
 //US MOAI OR BULLET VECTOR
-	btVector3 mRot;
-	btVector3 mLoc;
+	btVector3* mRot;
+	btVector3* mLoc;
 
 
 
