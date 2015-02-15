@@ -41,7 +41,7 @@ int MOAIBulletTransform::_setOrigin ( lua_State* L ) {
 	float loc_y = state.GetValue < float >( 3, 0.0f );
 	float loc_z = state.GetValue < float >( 4, 0.0f );	
 
-	self->mTransform->setOrigin(btVector3((loc_x), (loc_y), (loc_z)));
+	self->mTransform->setOrigin(btVector3((btScalar(loc_x)), btScalar((loc_y)), btScalar((loc_z))));
 	return 0;
 };
 //----------------------------------------------------------------//

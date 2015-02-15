@@ -101,6 +101,15 @@ MOAIBulletJoint::MOAIBulletJoint () :
 MOAIBulletJoint::~MOAIBulletJoint () {
 
 	if ( this->mJoint ) {	
+
+		//WTF ? 
+
+			//MOAIBulletBody* bodyA = ( MOAIBulletBody* )this->mJoint->getRigidBodyA ();
+			//MOAIBulletBody* bodyB = ( MOAIBulletBody* )this->mJoint->getRigidBodyB ();
+
+			//MOAIBox2DBody* bodyA = ( MOAIBox2DBody* )this->mJoint->GetBodyA ();
+			//MOAIBox2DBody* bodyB = ( MOAIBox2DBody* )this->mJoint->GetBodyB ();
+
 		this->LuaRelease ( this->mBodyA );
 		this->LuaRelease ( this->mBodyB );
 	}

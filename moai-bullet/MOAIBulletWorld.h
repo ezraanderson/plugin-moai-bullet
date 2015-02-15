@@ -8,7 +8,7 @@
 //#include <bullet/src/LinearMath/btQuickprof.h> // #ifndef BT_NO_PROFILE-
 //#include <moai-bullet/btRigidBodyWithCollisionEvents.h> //CUSTOM CALL BACKS DON"TWORK
 
-//class MOAISim;
+
 
 class MOAIBulletDebugDraw;
 class MOAIBulletBody;
@@ -81,8 +81,20 @@ float mDrawScale;
 float mDrawJointSize;
 bool  mLock;
 
+
+
 //----------------------------------------------------------------//
+static int		_testJoint			( lua_State* L );
+static int		_testRagDoll		( lua_State* L );
+static int		_testCar			( lua_State* L );
+static int		_testCarUpdate			( lua_State* L );
+
+//----------------------------------------------------------------//
+static int		_forceStep			    ( lua_State* L );
 static int		_DrawDebugLua		    ( lua_State* L );
+
+
+
 
 
 
@@ -117,9 +129,16 @@ static int		_addJointFreedom		( lua_State* L );
 static int		_addJointPoint			( lua_State* L );
 static int		_addJointSlider			( lua_State* L );
 
+static int		_removeCollisionObject	( lua_State* L );
+static int		_addCollisionObject		( lua_State* L );
+
+
 void			Destroy					();
 void			SayGoodbye				(btCompoundShape* shape ); 
 void			SayGoodbye				(btTypedConstraint* joint );
+
+
+
 
 void			ScheduleDestruction		( MOAIBulletBody& body );
 void			ScheduleDestruction		( MOAIBulletShape& shape );
@@ -147,8 +166,19 @@ public:
 	void			RegisterLuaClass	( MOAILuaState& state );
 	void			RegisterLuaFuncs	( MOAILuaState& state );
 
+
+
+
+
+
 	static bool callbackFunc(btManifoldPoint& cp,const btCollisionObject* obj1,int id1,int index1,const btCollisionObject* obj2,int id2,int index2);
 	static void mNearCallback(btBroadphasePair& collisionPair, btCollisionDispatcher& dispatcher, const btDispatcherInfo& dispatchInfo);
+
+
+btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape);
+
+
+
 
 // ICollisionEvents
 //virtual bool	needsCollision(btCollisionObject* body0,btCollisionObject* body1);

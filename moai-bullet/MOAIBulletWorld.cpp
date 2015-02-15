@@ -1,5 +1,32 @@
 #include "pch.h"
 
+
+//I THINK I NEED TO MAKE VERY MANUAL
+
+//1. HOW TO REMOVE JOINTS ???
+//2. HOW TO ADD JOINTS ???
+//3. WHY ARE PLANES ON RIGID BODIES THEY NEED TO BE JUST SHAPES ???
+
+// NEW BODY  ?
+// NEW SHAPE ?
+// body add shape
+// 
+
+
+
+//WILL ADD TO LUA ? OT FIELDS PERHAPS? OR WORLD
+//#define ACTIVE_TAG 1
+//#define ISLAND_SLEEPING 2
+//#define WANTS_DEACTIVATION 3
+//#define DISABLE_DEACTIVATION 4
+//#define DISABLE_SIMULATION 5
+
+
+
+
+
+
+
 //#include <bullet/src/btBulletDynamicsCommon.h>
 //#include "btRigidBodyWithCollisionEvents.h"
 
@@ -27,6 +54,13 @@
 //        return false;
 //}
 //
+
+
+
+
+
+
+
 
 //WTF
 #include <bullet/src/LinearMath/btQuickprof.h>
@@ -64,6 +98,716 @@
 //	printf("COLLID MOTHER FUCKER C\n");
 //}
 
+
+
+
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+// TEST CODE
+#define ENABLE_ALL_DEMOS 1
+#define CUBE_HALF_EXTENTS 1.f
+#define SIMD_PI_2 ((SIMD_PI)*0.5f)
+#define SIMD_PI_4 ((SIMD_PI)*0.25f)
+#define M_PI_8 0.5 * M_PI_4
+
+
+btRigidBody* MOAIBulletWorld::localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape)
+{
+		btVector3 localInertia(1,0,0);
+		shape->calculateLocalInertia(1,localInertia);
+		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass,myMotionState,shape,localInertia);
+		btRigidBody* body = new btRigidBody(rbInfo);
+		return body;
+
+
+}
+
+
+//****************************************************************//
+int MOAIBulletWorld::_testJoint ( lua_State* L ) {
+
+		MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )	
+		printf("TESTING : FIXED JOINT \n");
+
+		btCollisionShape* shapeA = new btBoxShape(btVector3(.5,.5,.5));
+		btCollisionShape* shapeB = new btBoxShape(btVector3(.5,.5,.5));
+				
+		btTransform transA;
+		transA.setIdentity();
+		transA.setOrigin(btVector3(0,0,0));
+
+		btTransform transB;
+		transB.setIdentity();
+		transB.setOrigin(btVector3(0,0,0));
+
+		float mass = 1.0f;
+		btTransform tr;
+		tr.setIdentity();
+		tr.setOrigin(btVector3(btScalar(0), btScalar(0), btScalar(0)));
+		tr.getBasis().setEulerZYX(0,0,0);	
+		btRigidBody* pBodyA = self->localCreateRigidBody( 0.0, transA, shapeA);			
+		self->mWorld->addRigidBody(pBodyA);
+
+
+		tr.setIdentity();
+		tr.setOrigin(btVector3(btScalar(0), btScalar(0), btScalar(0)));
+		tr.getBasis().setEulerZYX(0,0,0);
+		btRigidBody* pBodyB = self->localCreateRigidBody(mass, transB, shapeB);		
+		self->mWorld->addRigidBody(pBodyB);
+
+		btTransform frameInA;
+		frameInA = btTransform::getIdentity();
+		frameInA.getBasis().setEulerZYX(0, 0, 0);
+		frameInA.setOrigin(btVector3(btScalar(0.), btScalar(0), btScalar(0.)));
+
+		btTransform	frameInB;
+		frameInB = btTransform::getIdentity();
+		frameInB.getBasis().setEulerZYX(0,0, 0);
+		frameInB.setOrigin(btVector3(btScalar(0.), btScalar(0), btScalar(0.)));
+
+		btFixedConstraint*	btJoint = new btFixedConstraint(*pBodyA, *pBodyB, frameInA, frameInB);	
+
+		self->mWorld->addConstraint(btJoint, true);
+		btJoint->setDbgDrawSize(btScalar(1.f));		
+
+
+	return 0;
+}
+
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+//**************************************************************************************************************
+
+int MOAIBulletWorld::_testRagDoll ( lua_State* L ) {
+MOAI_LUA_SETUP ( MOAIBulletWorld, "UNNN" )
+
+	enum
+{
+BODYPART_PELVIS = 0,
+BODYPART_SPINE,
+BODYPART_HEAD,
+BODYPART_LEFT_UPPER_LEG,
+BODYPART_LEFT_LOWER_LEG,
+BODYPART_RIGHT_UPPER_LEG,
+BODYPART_RIGHT_LOWER_LEG,
+BODYPART_LEFT_UPPER_ARM,
+BODYPART_LEFT_LOWER_ARM,
+BODYPART_RIGHT_UPPER_ARM,
+BODYPART_RIGHT_LOWER_ARM,
+BODYPART_COUNT
+};
+enum
+{
+JOINT_PELVIS_SPINE = 0,
+JOINT_SPINE_HEAD,
+JOINT_LEFT_HIP,
+JOINT_LEFT_KNEE,
+JOINT_RIGHT_HIP,
+JOINT_RIGHT_KNEE,
+JOINT_LEFT_SHOULDER,
+JOINT_LEFT_ELBOW,
+JOINT_RIGHT_SHOULDER,
+JOINT_RIGHT_ELBOW,
+JOINT_COUNT
+};
+
+
+float offsetX = state.GetValue < float >( 2, 0.0f );
+float offsetY = state.GetValue < float >( 3, 0.0f );
+float offsetZ = state.GetValue < float >( 4, 0.0f );
+
+printf("TESTING : RAGDOLL %f %f %f\n",offsetX,offsetY,offsetZ);
+
+
+btCollisionShape*	m_shapes[BODYPART_COUNT];
+btRigidBody*		m_bodies[BODYPART_COUNT];
+btTypedConstraint*	m_joints[JOINT_COUNT];
+
+
+//******************************************************************************************
+// Setup the geometry
+	m_shapes[BODYPART_PELVIS]			= new btCapsuleShape(btScalar(0.15), btScalar(0.20));
+	m_shapes[BODYPART_SPINE]			= new btCapsuleShape(btScalar(0.15), btScalar(0.28));
+	m_shapes[BODYPART_HEAD]				= new btCapsuleShape(btScalar(0.10), btScalar(0.05));
+	m_shapes[BODYPART_LEFT_UPPER_LEG]	= new btCapsuleShape(btScalar(0.07), btScalar(0.45));
+	m_shapes[BODYPART_LEFT_LOWER_LEG]	= new btCapsuleShape(btScalar(0.05), btScalar(0.37));
+	m_shapes[BODYPART_RIGHT_UPPER_LEG]	= new btCapsuleShape(btScalar(0.07), btScalar(0.45));
+	m_shapes[BODYPART_RIGHT_LOWER_LEG]	= new btCapsuleShape(btScalar(0.05), btScalar(0.37));
+	m_shapes[BODYPART_LEFT_UPPER_ARM]	= new btCapsuleShape(btScalar(0.05), btScalar(0.33));
+	m_shapes[BODYPART_LEFT_LOWER_ARM]	= new btCapsuleShape(btScalar(0.04), btScalar(0.25));
+	m_shapes[BODYPART_RIGHT_UPPER_ARM]	= new btCapsuleShape(btScalar(0.05), btScalar(0.33));
+	m_shapes[BODYPART_RIGHT_LOWER_ARM]	= new btCapsuleShape(btScalar(0.04), btScalar(0.25));
+
+
+//**********************************************************************************
+// Setup all the rigid bodies
+btTransform offset; 
+offset.setIdentity();
+offset.setOrigin(btVector3 ( offsetX,offsetY,offsetZ));
+
+//TRANSFORM
+btTransform transform;
+transform.setIdentity();
+//**********************************************************************************
+
+transform.setOrigin(btVector3(btScalar(0.), btScalar(1), btScalar(0.)));
+m_bodies[BODYPART_PELVIS] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_PELVIS]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_PELVIS]);
+
+
+
+
+
+
+//**********************************************************************************
+
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.), btScalar(1.2), btScalar(0.)));
+m_bodies[BODYPART_SPINE] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_SPINE]);
+
+
+
+self->mWorld->addRigidBody(m_bodies[BODYPART_SPINE]);
+
+
+
+
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.), btScalar(1.6), btScalar(0.)));
+m_bodies[BODYPART_HEAD] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_HEAD]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_HEAD]);
+
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(-0.18), btScalar(0.65), btScalar(0.)));
+m_bodies[BODYPART_LEFT_UPPER_LEG] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_LEFT_UPPER_LEG]);
+
+self->mWorld->addRigidBody(m_bodies[BODYPART_LEFT_UPPER_LEG]);
+
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(-0.18), btScalar(0.2), btScalar(0.)));
+m_bodies[BODYPART_LEFT_LOWER_LEG] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_LEFT_LOWER_LEG]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_LEFT_LOWER_LEG]);
+
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.18), btScalar(0.65), btScalar(0.)));
+m_bodies[BODYPART_RIGHT_UPPER_LEG] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_RIGHT_UPPER_LEG]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_RIGHT_UPPER_LEG]);
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.18), btScalar(0.2), btScalar(0.)));
+m_bodies[BODYPART_RIGHT_LOWER_LEG] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_RIGHT_LOWER_LEG]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_RIGHT_LOWER_LEG]);
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(-0.35), btScalar(1.45), btScalar(0.)));
+transform.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2));
+m_bodies[BODYPART_LEFT_UPPER_ARM] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_LEFT_UPPER_ARM]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_LEFT_UPPER_ARM]);
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(-0.7), btScalar(1.45), btScalar(0.)));
+transform.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2));
+m_bodies[BODYPART_LEFT_LOWER_ARM] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_LEFT_LOWER_ARM]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_LEFT_LOWER_ARM]);
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.35), btScalar(1.45), btScalar(0.)));
+transform.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(-M_PI_2));
+m_bodies[BODYPART_RIGHT_UPPER_ARM] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_RIGHT_UPPER_ARM]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_RIGHT_UPPER_ARM]);
+
+//**********************************************************************************
+transform.setIdentity();
+transform.setOrigin(btVector3(btScalar(0.7), btScalar(1.45), btScalar(0.)));
+transform.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(-M_PI_2));
+m_bodies[BODYPART_RIGHT_LOWER_ARM] = self->localCreateRigidBody(btScalar(1.), offset*transform, m_shapes[BODYPART_RIGHT_LOWER_ARM]);
+self->mWorld->addRigidBody(m_bodies[BODYPART_RIGHT_LOWER_ARM]);
+
+
+
+
+
+
+
+//*******************************************************************************************
+// Setup some damping on the m_bodies
+		//for (int i = 0; i < BODYPART_COUNT; ++i)
+		//{
+		//		m_bodies[i]->setDamping(0.05, 0.85);
+		//		m_bodies[i]->setDeactivationTime(0.8);
+		//		m_bodies[i]->setSleepingThresholds(1.6, 2.5);
+		//}
+
+
+//****************************************************************************************
+//****************************************************************************************
+
+btHingeConstraint*		hingeC;
+btConeTwistConstraint*	coneC;
+
+btTransform localA; 
+btTransform	localB;
+
+float joint_draw = 0.1f;
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity(); 
+localB.setIdentity();
+
+localA.getBasis().setEulerZYX(0,0,0); 
+localA.setOrigin(btVector3(btScalar(0.), btScalar(0.15), btScalar(0.)));
+
+localB.getBasis().setEulerZYX(0,0,0); 
+localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.15), btScalar(0.)));
+
+hingeC = new btHingeConstraint(*m_bodies[BODYPART_PELVIS], *m_bodies[BODYPART_SPINE], localA, localB);
+hingeC->setLimit(btScalar(-M_PI_4), btScalar(M_PI_2));
+hingeC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_PELVIS_SPINE] = hingeC;	
+
+self->mWorld->addConstraint(m_joints[JOINT_PELVIS_SPINE], true);
+//
+////****************************************************************************************
+////****************************************************************************************
+localA.setIdentity(); 
+localB.setIdentity();
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2)); localA.setOrigin(btVector3(btScalar(0.), btScalar(0.30), btScalar(0.)));
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2)); localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.14), btScalar(0.)));
+
+coneC = new btConeTwistConstraint(*m_bodies[BODYPART_SPINE], *m_bodies[BODYPART_HEAD], localA, localB);
+coneC->setLimit(btScalar(M_PI_4), btScalar(M_PI_4), btScalar(M_PI_2));
+coneC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_SPINE_HEAD] = coneC;
+
+self->mWorld->addConstraint(m_joints[JOINT_SPINE_HEAD], true);
+//
+////****************************************************************************************
+////****************************************************************************************
+//
+localA.setIdentity(); 
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(-M_PI_4*5)); localA.setOrigin(btVector3(btScalar(-0.18), btScalar(-0.10), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(-M_PI_4*5)); localB.setOrigin(btVector3(btScalar(0.), btScalar(0.225), btScalar(0.)));
+
+coneC = new btConeTwistConstraint(*m_bodies[BODYPART_PELVIS], *m_bodies[BODYPART_LEFT_UPPER_LEG], localA, localB);
+coneC->setLimit(btScalar(M_PI_4), btScalar(M_PI_4), btScalar(0));
+coneC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_LEFT_HIP] = coneC;
+	
+self->mWorld->addConstraint(m_joints[JOINT_LEFT_HIP], true);
+
+//****************************************************************************************
+//****************************************************************************************
+
+localA.setIdentity(); 
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0)); localA.setOrigin(btVector3(btScalar(0.), btScalar(-0.225), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0)); localB.setOrigin(btVector3(btScalar(0.), btScalar(0.185), btScalar(0.)));
+
+hingeC = new btHingeConstraint(*m_bodies[BODYPART_LEFT_UPPER_LEG], *m_bodies[BODYPART_LEFT_LOWER_LEG], localA, localB);
+hingeC->setLimit(btScalar(0), btScalar(M_PI_2));
+hingeC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_LEFT_KNEE] = hingeC;	
+
+self->mWorld->addConstraint(m_joints[JOINT_LEFT_KNEE], true);
+
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity(); 
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_4)); localA.setOrigin(btVector3(btScalar(0.18), btScalar(-0.10), btScalar(0.)));
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_4)); localB.setOrigin(btVector3(btScalar(0.), btScalar(0.225), btScalar(0.)));
+
+coneC = new btConeTwistConstraint(*m_bodies[BODYPART_PELVIS], *m_bodies[BODYPART_RIGHT_UPPER_LEG], localA, localB);
+coneC->setLimit(btScalar(M_PI_4), btScalar(M_PI_4), btScalar(0));
+coneC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_RIGHT_HIP] = coneC;
+
+self->mWorld->addConstraint(m_joints[JOINT_RIGHT_HIP], true);
+
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity(); 
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0)); localA.setOrigin(btVector3(btScalar(0.), btScalar(-0.225), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0));localB.setOrigin(btVector3(btScalar(0.), btScalar(0.185), btScalar(0.)));
+
+hingeC = new btHingeConstraint(*m_bodies[BODYPART_RIGHT_UPPER_LEG], *m_bodies[BODYPART_RIGHT_LOWER_LEG], localA, localB);
+hingeC->setLimit(btScalar(0), btScalar(M_PI_2));
+hingeC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_RIGHT_KNEE] = hingeC;
+
+
+self->mWorld->addConstraint(m_joints[JOINT_RIGHT_KNEE], true);
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity();
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI)); localA.setOrigin(btVector3(btScalar(-0.2), btScalar(0.15), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2)); localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.18), btScalar(0.)));
+
+coneC = new btConeTwistConstraint(*m_bodies[BODYPART_SPINE], *m_bodies[BODYPART_LEFT_UPPER_ARM], localA, localB);
+coneC->setLimit(btScalar(M_PI_2), btScalar(M_PI_2), btScalar(0));
+coneC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_LEFT_SHOULDER] = coneC;
+
+self->mWorld->addConstraint(m_joints[JOINT_LEFT_SHOULDER], true);
+
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity(); 
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0)); localA.setOrigin(btVector3(btScalar(0.), btScalar(0.18), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0));localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.14), btScalar(0.)));
+
+hingeC = new btHingeConstraint(*m_bodies[BODYPART_LEFT_UPPER_ARM], *m_bodies[BODYPART_LEFT_LOWER_ARM], localA, localB);
+hingeC->setLimit(btScalar(0), btScalar(M_PI_2));
+hingeC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_LEFT_ELBOW] = hingeC;
+
+self->mWorld->addConstraint(m_joints[JOINT_LEFT_ELBOW], true);
+
+//****************************************************************************************
+//****************************************************************************************
+localA.setIdentity(); 
+
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(0)); localA.setOrigin(btVector3(btScalar(0.2), btScalar(0.15), btScalar(0.)));
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(0),btScalar(M_PI_2)); localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.18), btScalar(0.)));
+
+coneC = new btConeTwistConstraint(*m_bodies[BODYPART_SPINE], *m_bodies[BODYPART_RIGHT_UPPER_ARM], localA, localB);
+coneC->setLimit(btScalar(M_PI_2), btScalar(M_PI_2), btScalar(0));
+coneC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_RIGHT_SHOULDER] = coneC;
+
+self->mWorld->addConstraint(m_joints[JOINT_RIGHT_SHOULDER], true);
+
+//****************************************************************************************
+//****************************************************************************************
+
+localA.setIdentity();
+localA.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0)); 
+localA.setOrigin(btVector3(btScalar(0.), btScalar(0.18), btScalar(0.)));
+
+localB.setIdentity();
+localB.getBasis().setEulerZYX(btScalar(0),btScalar(M_PI_2),btScalar(0));
+localB.setOrigin(btVector3(btScalar(0.), btScalar(-0.14), btScalar(0.)));
+
+hingeC = new btHingeConstraint(*m_bodies[BODYPART_RIGHT_UPPER_ARM], *m_bodies[BODYPART_RIGHT_LOWER_ARM], localA, localB);
+hingeC->setLimit(btScalar(0), btScalar(M_PI_2));
+hingeC->setDbgDrawSize(joint_draw);
+m_joints[JOINT_RIGHT_ELBOW] = hingeC;
+
+self->mWorld->addConstraint(m_joints[JOINT_RIGHT_ELBOW], true);
+
+
+return 1;
+
+};
+
+
+//************************************************************************************************************
+//************************************************************************************************************
+//************************************************************************************************************
+//************************************************************************************************************
+//************************************************************************************************************
+//************************************************************************************************************
+///CAR
+
+//TEMP GLOBAL
+btRaycastVehicle	*m_vehicle;
+btRigidBody			*m_carChassis;
+
+//WTF ????
+//btScalar suspensionRestLength(0.6);
+float suspensionRestLength = 0.6f;
+
+float	gEngineForce			= 00.f;
+float	gBreakingForce			= 00.f;
+float	maxEngineForce			= 1000.f;//this should be engine/velocity dependent
+float	maxBreakingForce		= 100.f;
+float	gVehicleSteering		= 0.f;
+float	steeringIncrement		= 0.01f;
+float	steeringClamp			= 0.3f;
+float	wheelRadius				= 0.7f;
+float	wheelWidth				= 0.4f;
+float	wheelFriction			= 1000;//BT_LARGE_FLOAT;
+float	suspensionStiffness		= 20.f;
+float	suspensionDamping		= 2.3f;
+float	suspensionCompression	= 4.4f;
+float	rollInfluence			= 0.1f;//1.0f;
+
+btVector3 wheelDirectionCS0(0,-1,0);
+btVector3 wheelAxleCS(-1,0,0);
+
+//--------------------------------------------------------------------//
+int MOAIBulletWorld::_testCar ( lua_State* L ) {
+MOAI_LUA_SETUP ( MOAIBulletWorld, "UN" )
+
+btCollisionShape*	chassisShape = new btBoxShape(btVector3(1.f,0.5f,2.f));
+btCompoundShape*	compound	 = new btCompoundShape();
+
+//****************************************************
+//SHAPE
+btTransform localTrans;
+localTrans.setIdentity();
+localTrans.getBasis().setEulerZYX(0,0,0);
+localTrans.setOrigin(btVector3(0,1,0));	
+compound->addChildShape(localTrans,chassisShape);
+
+
+//********************************************************
+//BODY 
+btTransform tr;
+tr.setIdentity();
+tr.getBasis().setEulerZYX(0,0,0);
+tr.setOrigin(btVector3(0,0,0));
+m_carChassis = self->localCreateRigidBody(0,tr,compound); //MASS 300 or 800
+
+
+//SET IT TO THE WORLD
+	self->mWorld->addRigidBody(m_carChassis);
+
+		{
+
+			//MAKE A RAY CAST
+			btVehicleRaycaster* m_vehicleRayCaster  = new btDefaultVehicleRaycaster(self->mWorld);
+			//TUNE IT
+			btRaycastVehicle::btVehicleTuning m_tuning;
+
+					//m_tuning.m_frictionSlip			= 0;
+					//m_tuning.m_maxSuspensionForce		= 0;
+					//m_tuning.m_maxSuspensionTravelCm	= 0;
+					//m_tuning.m_suspensionCompression	= 0;
+					//m_tuning.m_suspensionDamping		= 0;
+					//m_tuning.m_suspensionStiffness	= 0;
+
+
+			//MAKE A VEHICLE : TUNE : BODY : CASTER
+			m_vehicle			= new btRaycastVehicle(m_tuning,m_carChassis,m_vehicleRayCaster);	
+			m_carChassis->setActivationState(DISABLE_DEACTIVATION);	
+
+
+
+			// MAKE JOINTS
+			btVector3 connectionPointCS0;
+			float connectionHeight	= 1.2f;
+			bool  isFrontWheel		= false;	
+
+			//***********************	
+			connectionPointCS0= btVector3(btScalar(CUBE_HALF_EXTENTS-(0.3*wheelWidth)),btScalar(connectionHeight),btScalar(2*CUBE_HALF_EXTENTS-wheelRadius));
+			m_vehicle->addWheel(connectionPointCS0,wheelDirectionCS0,wheelAxleCS,suspensionRestLength,wheelRadius,m_tuning,isFrontWheel);
+			//***********************
+			connectionPointCS0 = btVector3(btScalar(-CUBE_HALF_EXTENTS+(0.3*wheelWidth)),btScalar(connectionHeight),btScalar(2*CUBE_HALF_EXTENTS-wheelRadius));
+			m_vehicle->addWheel(connectionPointCS0,wheelDirectionCS0,wheelAxleCS,suspensionRestLength,wheelRadius,m_tuning,isFrontWheel);
+			//***********************
+			connectionPointCS0 = btVector3(btScalar(-CUBE_HALF_EXTENTS+(0.3*wheelWidth)),btScalar(connectionHeight),btScalar(-2*CUBE_HALF_EXTENTS+wheelRadius));	
+			m_vehicle->addWheel(connectionPointCS0,wheelDirectionCS0,wheelAxleCS,suspensionRestLength,wheelRadius,m_tuning,isFrontWheel);
+			//***********************
+			connectionPointCS0 = btVector3(btScalar(CUBE_HALF_EXTENTS-(0.3*wheelWidth)),btScalar(connectionHeight),btScalar(-2*CUBE_HALF_EXTENTS+wheelRadius));
+			m_vehicle->addWheel(connectionPointCS0,wheelDirectionCS0,wheelAxleCS,suspensionRestLength,wheelRadius,m_tuning,isFrontWheel);
+			
+			//*************************************************************************
+			//*************************************************************************
+
+					//for (int i=0;i<m_vehicle->getNumWheels();i++)
+					//{
+					//	btWheelInfo& wheel = m_vehicle->getWheelInfo(i);
+					//	wheel.m_suspensionStiffness			= suspensionStiffness;
+					//	wheel.m_wheelsDampingRelaxation		= suspensionDamping;
+					//	wheel.m_wheelsDampingCompression	= suspensionCompression;
+					//	wheel.m_frictionSlip				= wheelFriction;
+					//	wheel.m_rollInfluence				= rollInfluence;
+					//	//wheel.
+					//}
+
+
+
+
+			//SET VIEHICLE TO WORLD
+			self->mWorld->addVehicle(m_vehicle);		
+
+			//SET CORDINATES ON VEICL
+			int rightIndex   = 0;
+			int upIndex		 = 1;
+			int forwardIndex = 2;			
+			m_vehicle->setCoordinateSystem(rightIndex,upIndex,forwardIndex);
+
+					//m_tuning.m_frictionSlip			= 0;
+					//m_tuning.m_maxSuspensionForce		= 0;
+					//m_tuning.m_maxSuspensionTravelCm	= 0;
+					//m_tuning.m_suspensionCompression	= 0;
+					//m_tuning.m_suspensionDamping		= 0;
+					//m_tuning.m_suspensionStiffness	= 0;
+
+
+
+
+		}
+
+return 1;
+};
+//------------------------------------------------------------///
+int MOAIBulletWorld::_testCarUpdate ( lua_State* L ) {
+MOAI_LUA_SETUP ( MOAIBulletWorld, "UN" )	
+
+int dir = state.GetValue < int >( 2, 0 );
+
+if (dir == 5) {	
+	gVehicleSteering = 0;
+};
+
+//UP
+if (dir == 1) {	
+	gEngineForce = maxEngineForce;
+	gBreakingForce = 0.f;
+};
+//RIGHT
+if (dir == 4) {	
+	gVehicleSteering += steeringIncrement;
+	if ( gVehicleSteering > steeringClamp) 
+	gVehicleSteering = steeringClamp;
+};
+//DOWN
+if (dir == 3) {	
+	gBreakingForce = maxBreakingForce;
+	gEngineForce = 0.f;
+};
+//LEFT
+if (dir == 2) {	
+	gVehicleSteering -= steeringIncrement;
+	if ( gVehicleSteering < -steeringClamp)
+	gVehicleSteering = -steeringClamp;
+}
+
+
+	btTransform chassisWorldTrans;
+	//look at the vehicle
+	m_carChassis->getMotionState()->getWorldTransform(chassisWorldTrans);
+	btVector3 m_cameraTargetPosition = chassisWorldTrans.getOrigin();
+	
+
+	btQuaternion rotation =chassisWorldTrans.getRotation();
+	float quaternion_x = rotation.x();
+	float quaternion_y = rotation.y();		
+	float quaternion_z = rotation.z();
+
+	//printf("%f \n",quaternion_x);
+	//**************************************************************************************************************
+	int wheelIndex;
+
+
+//BRAKING
+
+	//********************************
+		wheelIndex = 3;
+		m_vehicle->applyEngineForce(gEngineForce,wheelIndex);
+		m_vehicle->setBrake(gBreakingForce,wheelIndex);
+	//********************************
+		wheelIndex = 2;
+		m_vehicle->applyEngineForce(gEngineForce,wheelIndex);
+		m_vehicle->setBrake(gBreakingForce,wheelIndex);
+
+
+
+
+//STEARING
+	//********************************
+				wheelIndex = 1;
+				m_vehicle->setSteeringValue(gVehicleSteering,wheelIndex);
+	//********************************
+				wheelIndex = 4;
+				m_vehicle->setSteeringValue(gVehicleSteering,wheelIndex);
+
+
+		//LOC
+		lua_pushnumber ( state, m_cameraTargetPosition.getX() ); 
+		lua_pushnumber ( state, m_cameraTargetPosition.getY() ); 
+		lua_pushnumber ( state, m_cameraTargetPosition.getZ() ); 
+		//ROT
+		lua_pushnumber ( state, quaternion_x ); 
+		lua_pushnumber ( state, quaternion_y ); 
+		lua_pushnumber ( state, quaternion_z ); 
+		
+		return 6;
+
+};
+
+
+
+
+
+
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+//***************************************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
 //----------------------------------------------------------------//
 float MOAIBulletPrim::GetUnitsToMeters () {
 	if ( this->mWorld ) {
@@ -81,12 +825,9 @@ MOAIBulletPrim::MOAIBulletPrim () :
 bool MOAIBulletWorld::IsDone () {
 	return false;
 }
-
-
-
-
-
 //----------------------------------------------------------------//
+// COLLISION CALL BACK SHOULD BE IN IT OWN FILE
+// HAS ISSUE WITH ALWASY BUMPPING PLANES
 struct YourOwnFilterCallback : public btOverlapFilterCallback
 {
 	virtual bool	needBroadphaseCollision(btBroadphaseProxy* proxy0,btBroadphaseProxy* proxy1) const
@@ -102,27 +843,40 @@ struct YourOwnFilterCallback : public btOverlapFilterCallback
 				return collides;
 			};		
 
-			//LOOK : THE PLANE THE PLANE THE FUCKING PLANE
+
+
+
+
+
+			////LOOK : THE PLANE THE PLANE THE FUCKING PLANE
 			btCompoundShape *shapeA = (btCompoundShape *)colObj0->getCollisionShape();
-			btCompoundShape *shapeB = (btCompoundShape *)colObj1->getCollisionShape();		
-			if (shapeA->getNumChildShapes() > 0) {			
-				if (shapeA->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
-					return collides; //RETURN COLLID OR DOSNt HAPPEN
-				};			
-			};
+			btCompoundShape *shapeB = (btCompoundShape *)colObj1->getCollisionShape();	
 
-			if (shapeB->getNumChildShapes() > 0) {
-				if (shapeB->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
-					return collides;//RETURN COLLID OR DOSNt HAPPEN
-				};			
-			};	
-
-			//PUSH TO CALLBACK
 			btRigidBody* rigBodyA = ( btRigidBody* )colObj0;
-			MOAIBulletBody* moaiBodyA = ( MOAIBulletBody* )rigBodyA->getUserPointer (); 			
-			
+			MOAIBulletBody* moaiBodyA = ( MOAIBulletBody* )rigBodyA->getUserPointer (); 	
+
 			btRigidBody* rigBodyB = ( btRigidBody* )colObj1;
-			MOAIBulletBody* moaiBodyB = ( MOAIBulletBody* )rigBodyB->getUserPointer (); 			
+			MOAIBulletBody* moaiBodyB = ( MOAIBulletBody* )rigBodyB->getUserPointer ();
+
+			if ((moaiBodyA) && (moaiBodyB)) {		
+				//printf("ass \n");
+
+				//MOAI BODIES ARE COMMPOUND SHAPES
+				//DON"T RETURN PLANE COLLISION MAYBE THIS IS FIXED
+				//WHY IS THE THE PLANE ALWAYS COLLDING WITH OBJECTS ????
+				if (shapeA->getNumChildShapes() > 0) {			
+					if (shapeA->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
+						return collides; //RETURN COLLID OR DOSNt HAPPEN
+					};			
+				};
+
+				if (shapeB->getNumChildShapes() > 0) {
+					if (shapeB->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
+						return collides;//RETURN COLLID OR DOSNT HAPPEN
+					};			
+				};	
+		
+				//RETURN CALLBACK
 
 				//if (moaiBodyA) {
 				//	moaiBodyA->HandleCollision ( 1, moaiBodyA,moaiBodyB );
@@ -131,6 +885,56 @@ struct YourOwnFilterCallback : public btOverlapFilterCallback
 				if (moaiBodyB) {
 					moaiBodyB->HandleCollision ( 1, moaiBodyB,moaiBodyA );
 				};
+
+			} else {
+				//printf("NOT A MOAI BODY \n");
+				//return collides;
+			};
+
+	
+
+
+
+
+//*******************************
+//COLLISION IS  A PLANE 
+
+			//	if (shapeA->getNumChildShapes() > 0) {			
+			//		if (shapeA->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
+			//			return collides; //RETURN COLLID OR DOSNt HAPPEN
+			//		};			
+			//	};
+
+			//	if (shapeB->getNumChildShapes() > 0) {
+			//		if (shapeB->getChildShape(0)->getShapeType() == STATIC_PLANE_PROXYTYPE)  {
+			//			return collides;//RETURN COLLID OR DOSNT HAPPEN
+			//		};			
+			//	};	
+
+
+
+
+			//
+			//////PUSH TO CALLBACK
+			//btRigidBody* rigBodyA = ( btRigidBody* )colObj0;
+			//MOAIBulletBody* moaiBodyA = ( MOAIBulletBody* )rigBodyA->getUserPointer (); 			
+			//
+			//btRigidBody* rigBodyB = ( btRigidBody* )colObj1;
+			//MOAIBulletBody* moaiBodyB = ( MOAIBulletBody* )rigBodyB->getUserPointer (); 			
+
+			//	//if (moaiBodyA) {
+			//	//	moaiBodyA->HandleCollision ( 1, moaiBodyA,moaiBodyB );
+			//	//};
+
+			//	if (moaiBodyB) {
+			//		moaiBodyB->HandleCollision ( 1, moaiBodyB,moaiBodyA );
+			//	};
+
+
+
+
+
+
 
 		return collides;
 	}
@@ -189,11 +993,14 @@ void MOAIBulletWorld::mNearCallback(btBroadphasePair& collisionPair, btCollision
 	dispatcher.defaultNearCallback(collisionPair, dispatcher, dispatchInfo);
 
 }
-//----------------------------------------------------------------//
 
+
+
+//----------------------------------------------------------------//
+//----------------------------------------------------------------//
+//----------------------------------------------------------------//
 void MOAIBulletWorld::OnUpdate ( float step ) {			
      mWorld->stepSimulation( mStep, mMaxSubSteps);	
-
 //UPDATE ALL OBJECTS
 	for (int j=mWorld->getNumCollisionObjects()-1; j>=0 ;j--){	
 		btCollisionObject* obj = mWorld->getCollisionObjectArray()[j];
@@ -202,13 +1009,7 @@ void MOAIBulletWorld::OnUpdate ( float step ) {
 		//ACTIVE AND AWAKE THE SAME THING?
 			if ( body->isActive()) {
 				if (body && body->getMotionState())
-				{			
-
-					//CULLING PERHAPS ??
-					//btTransform trans;
-					//body->getMotionState()->getWorldTransform(trans);
-					//printf("world pos = %f,%f,%f\n",float(trans.getOrigin().getX()),float(trans.getOrigin().getY()),float(trans.getOrigin().getZ()));
-					
+				{								
 						//FIX FOR RAG DOLLS
 						MOAIBulletBody* moaiBody = ( MOAIBulletBody* )body->getUserPointer (); //HAD TO ADD TO BULLET
 						if (moaiBody) {
@@ -263,6 +1064,7 @@ void MOAIBulletWorld::OnUpdate ( float step ) {
 //----------------------------------------------------------------//
 void MOAIBulletWorld::DrawDebug () {	
 	if ( this->mDebugDraw ) {	
+
 		MOAIDraw::Bind ();	
 		this->mDebugDraw->mSize = 0;
 
@@ -270,43 +1072,49 @@ void MOAIBulletWorld::DrawDebug () {
 		gfxDevice.SetVertexMtxMode ( MOAIGfxDevice::VTX_STAGE_MODEL, MOAIGfxDevice::VTX_STAGE_PROJ );
 		gfxDevice.SetVertexTransform ( MOAIGfxDevice::VTX_WORLD_TRANSFORM );	
 		gfxDevice.BeginPrim ( ZGL_PRIM_LINES );
-
-				this->mDebugDraw->mScale = this->mDrawScale; //* //(30.0f/10.0f);
+				this->mDebugDraw->mScale = this->mDrawScale; 
 				this->mWorld->debugDrawWorld();
 
-	//	gfxDevice.addDrawCount();
-		//gfxDevice.setPrimeSize(this->mDebugDraw->mSize*2);
+		gfxDevice.setPrimeSize(this->mDebugDraw->mSize*2);
 		gfxDevice.EndPrim ();
 	}
 }
+
+
+
+
+
+
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+
 //----------------------------------------------------------------//
 void MOAIBulletWorld::SayGoodbye ( btCompoundShape* shape) {
 
-//***********************************************************
-//NO USER DATA CONTAINER MUST ADDED IT TO BULLET SOURCE CODE??
-//***********************************************************
-
-		//MOAIBulletShape* moaiFixture = ( MOAIBulletShape* )fixture->getUserPointer ();
-		//if ( moaiFixture->mFixture ) {
-		//	moaiFixture->mFixture = 0;
-		//	moaiFixture->SetWorld ( 0 );
-		//	this->LuaRelease ( moaiFixture );
-		//}
+		MOAIBulletShape* moaishape = ( MOAIBulletShape* )shape->getUserPointer();
+		if ( moaishape->mShape ) {
+			moaishape->mShape = 0;
+			moaishape->SetWorld ( 0 );
+			this->LuaRelease ( moaishape );
+		}
 }
 
 //----------------------------------------------------------------//
 void MOAIBulletWorld::SayGoodbye ( btTypedConstraint* joint ) {
 
-//***********************************************************
-//NO USER DATA CONTAINER MUST ADDED IT TO BULLET SOURCE CODE??
-//***********************************************************
 
-	//MOAIBulletJoint* moaiJoint = ( MOAIBulletJoint* )joint->getUserPointer ();
-	//if ( moaiJoint->mJoint ) {
-	//		moaiJoint->mJoint = 0;
-	//		moaiJoint->SetWorld ( 0 );
-	//		this->LuaRelease ( moaiJoint );
-	//}
+	MOAIBulletJoint* moaiJoint = ( MOAIBulletJoint* )joint->getUserConstraintPtr();
+	if ( moaiJoint->mJoint ) {
+			moaiJoint->mJoint = 0;
+			moaiJoint->SetWorld ( 0 );
+			this->LuaRelease ( moaiJoint );
+	}
 
 }
 //----------------------------------------------------------------//
@@ -341,7 +1149,10 @@ void MOAIBulletWorld::ScheduleDestruction (  MOAIBulletJoint& joint ) {
 }
 //----------------------------------------------------------------//
 //I DON'T UNDERSTAND HOW THIS WORKS ???
+//THIS IS CALLED FROM THE SECHDUAL DES
+
 void MOAIBulletWorld::Destroy () {
+	printf("\nMOAIBulletWorld::Destroy\n");
 
 	if ( this->mLock ) return;
 	this->mLock = true;
@@ -349,8 +1160,7 @@ void MOAIBulletWorld::Destroy () {
 	while ( this->mDestroyShapes ) {
 		MOAIBulletPrim* prim = this->mDestroyShapes;
 		this->mDestroyShapes = this->mDestroyShapes->mDestroyNext;
-		prim->Destroy ();
-		
+		prim->Destroy ();		
 		prim->SetWorld ( 0 );
 		this->LuaRelease ( prim );
 	}
@@ -367,13 +1177,28 @@ void MOAIBulletWorld::Destroy () {
 	while ( this->mDestroyBodies ) {
 		MOAIBulletPrim* prim = this->mDestroyBodies;
 		this->mDestroyBodies = this->mDestroyBodies->mDestroyNext;
-		prim->Destroy ();
-		
+		prim->Destroy ();		
 		prim->SetWorld ( 0 );
 		this->LuaRelease ( prim );
 	}	
 	this->mLock = false;
 }
+
+
+
+
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//***************************************************************************
+//CREATE
+
+
+
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_create( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
@@ -384,40 +1209,48 @@ int MOAIBulletWorld::_create( lua_State* L ) {
 	self->mSolver					= new btSequentialImpulseConstraintSolver;
 	self->mWorld					= new btDiscreteDynamicsWorld(self->mCollisionDispatcher, self->mBroadphase, self->mSolver, self->mCollisionConfiguration);
 
-	//const btVector3 worldAabbMin( -1000.0, -1000.0, -1000.0 );
-	//const btVector3 worldAabbMax( 1000.0, 1000.0, 1000.0 );
-	//btBroadphaseInterface = new btAxisSweep3(worldAabbMin, worldAabbMax, 1638 );
+	//*********************************************************
+	//SWEEPING ???
+		//const btVector3 worldAabbMin( -1000.0, -1000.0, -1000.0 );
+		//const btVector3 worldAabbMax( 1000.0, 1000.0, 1000.0 );
+		//btBroadphaseInterface = new btAxisSweep3(worldAabbMin, worldAabbMax, 1638 );
 
 	//GRAVITY
 		self->mWorld->setGravity(btVector3(0, 0, 0));
 	
 	//SOLVER
-		self->mWorld->getSolverInfo().m_splitImpulse			= true; // Disable by default for performance
+		self->mWorld->getSolverInfo().m_splitImpulse			= false; // Disable by default for performance
 
 	//DISPATCH
-		self->mWorld->getDispatchInfo().m_useContinuous			= true;
-		self->mWorld->getDispatchInfo().m_enableSPU				= true;
+		self->mWorld->getDispatchInfo().m_useContinuous			= false;
+		self->mWorld->getDispatchInfo().m_enableSPU				= false;
 		self->mWorld->getDispatchInfo().m_allowedCcdPenetration = 0.01f;
 
 
-	//self->mWorld->getDispatchInfo().
-
-	//***********************************
-	//OTHER STUFF
-	//self->mWorld->setNumTasks
+	//OTHER STUFF ???????
+			//self->mWorld->setNumTasks
 
 	self->mDebugDraw = new MOAIBulletDebugDraw ();
 	self->mWorld->setDebugDrawer(self->mDebugDraw );		
 
 	//****************************************************
-	//SET CALLBACKS : DOSEN"T WORK
-		//ICollisionEvents::SetInstance(this,this->mWorld);
-		//gContactAddedCallback//=callbackFunc;
+	//****************************************************
+	//****************************************************
+			//SET CALLBACKS : DOSEN"T WORK
+				//ICollisionEvents::SetInstance(this,this->mWorld);
+				//gContactAddedCallback//=callbackFunc;
 
-	//NEAR
-		//mCollisionDispatcher->setNearCallback(this->mNearCallback);
-		btOverlapFilterCallback * filterCallback = new YourOwnFilterCallback();
-		self->mWorld->getPairCache()->setOverlapFilterCallback(filterCallback);
+			//NEAR
+	//****************************************************
+	//****************************************************
+	//****************************************************
+
+
+			//mCollisionDispatcher->setNearCallback(this->mNearCallback);
+
+			//CURRENT
+				btOverlapFilterCallback * filterCallback = new YourOwnFilterCallback();
+				self->mWorld->getPairCache()->setOverlapFilterCallback(filterCallback);
 
 	return 1;
 }
@@ -442,19 +1275,36 @@ RTTI_BEGIN
 	RTTI_EXTEND ( MOAIAction )			
 RTTI_END
 //PRO-is wrapped in 
-	//BT_NO_PROFILE 1
-	//ProfileIterator * m_profileIterator =  CProfileManager::Get_Iterator();
-	//LOWER MEMORY FOOT PRINT
+
+	//LOWER MEMORY FOOT PRINT ?????
 	 this->mConstructionInfo		=  btDefaultCollisionConstructionInfo();
-	//mConstructionInfo.m_defaultMaxCollisionAlgorithmPoolSize = 1023;
-	//mConstructionInfo.m_defaultMaxPersistentManifoldPoolSize = 1023;	
-	//m_defaultMaxPersistentManifoldPoolSize( 1638 ), //65536
-	//m_defaultMaxCollisionAlgorithmPoolSize( 1638 ), //65536
-	//m_defaultStackAllocatorSize( 131072 ) // 5 * 1024 * 1024
+				//mConstructionInfo.m_defaultMaxCollisionAlgorithmPoolSize = 1023;
+				//mConstructionInfo.m_defaultMaxPersistentManifoldPoolSize = 1023;	
+				//m_defaultMaxPersistentManifoldPoolSize( 1638 ), //65536
+				//m_defaultMaxCollisionAlgorithmPoolSize( 1638 ), //65536
+				//m_defaultStackAllocatorSize( 131072 ) // 5 * 1024 * 1024
 };
 //----------------------------------------------------------------//
 MOAIBulletWorld::~MOAIBulletWorld () {
-	printf("\n~MOAIBulletWorld");
+	printf("\nMOAIBulletWorld::~MOAIBulletWorld\n");
+
+	//THIS IS BODY NEEDS TO GET ALL SHAPES TO DELETE
+	if (this->mWorld) {
+			int i;
+
+			for (i=this->mWorld->getNumCollisionObjects()-1; i>=0 ;i--)
+			{
+				//btCollisionObject* obj = this->mWorld->getCollisionObjectArray()[i];
+				//btRigidBody* body = btRigidBody::upcast(obj);
+				//if (body && body->getMotionState())
+				//{
+				//	delete body->getMotionState();
+				//}
+				//this->mWorld->removeCollisionObject( obj );
+				//delete obj;
+			}
+	};
+
 
 	if (this->mWorld) {
 		delete mWorld;
@@ -479,6 +1329,8 @@ MOAIBulletWorld::~MOAIBulletWorld () {
 	if (this->mDebugDraw) {
 		delete mDebugDraw;
 	}
+
+	//this->Destroy ();
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_newBody ( lua_State* L ) {
@@ -498,66 +1350,42 @@ int MOAIBulletWorld::_newBody ( lua_State* L ) {
 		btVector3 mInertia(0.0, 0.0, 0.0);
 	//MOTION & COMPOIND
 		body->mMotion	= new btDefaultMotionState(ta);	
-		body->mCompound = new btCompoundShape();   
-	
+		body->mCompound = new btCompoundShape();   	
+
+//printf("TRACE 1. btDefaultMotionState \n");
+//printf("TRACE 2. btCompoundShape \n");
+//printf("TRACE 3. btRigidBodyConstructionInfo \n");
 
 	btRigidBody::btRigidBodyConstructionInfo info(mMass,body->mMotion,body->mCompound,mInertia);  
+	
+	//*********************************************************
+	//*********************************************************
+	//*********************************************************
+	//*********************************************************
+			//body->mBody = new btRigidBody(info); //DOESN'T WORK
+			//static_cast <btRigidBodyWithEvents*> (body->mBody)->setMonitorCollisions(true); 
+			//static_cast <btRigidBodyWithEvents*>(body->mBody)->setMonitorCollisions(true);
+			//body->mBody->setMonitorCollisions(true);	
 
 	//*********************************************************
-	//body->mBody = new btRigidBody(info); //DOESN'T WORK
-	//static_cast <btRigidBodyWithEvents*> (body->mBody)->setMonitorCollisions(true); 
-	//static_cast <btRigidBodyWithEvents*>(body->mBody)->setMonitorCollisions(true);
-	//body->mBody->setMonitorCollisions(true);	
-
+	//*********************************************************
+	//*********************************************************
+	//*********************************************************
 	
 	body->mBody = new btRigidBody(info);
 
 	body->setWorld(self->mWorld);	
-	body->SetBody(body->mBody); //SHOULDNT THIS BE MOAI DATA
+	body->SetBody(body->mBody);
 	self->LuaRetain ( body );
 	body->PushLuaUserdata ( state );
 	return 1;
 }
 //----------------------------------------------------------------//
-int MOAIBulletWorld::_addJointHinge ( lua_State* L ) {
+int MOAIBulletWorld::_addJointHinge ( lua_State* L ) {	
+//DISSABLE COLLISION BETWEEN BODIES --> self->mWorld->addConstraint(btJoint, false);
+//USE FRAME A						--> btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
 
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
-	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
-	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );	
 
-	if ( !( bodyA && bodyB )) return 0;
-
-		MOAIBulletTransform* transA = state.GetLuaObject < MOAIBulletTransform >( 4, true );
-		MOAIBulletTransform* transB = state.GetLuaObject < MOAIBulletTransform >( 5, true );
-
-		if ( !( transA && transB )) return 0;
-
-			btTransform ta = *transA->mTransform;
-			btTransform tb = *transB->mTransform;
-
-	btHingeConstraint*		hingeC;
-	hingeC = new btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
-
-	hingeC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(hingeC, true);	
-
-	MOAIBulletJointHinge* mJoint = new MOAIBulletJointHinge (); 
-
-	mJoint->SetJoint(hingeC);
-	mJoint->SetBodyA(bodyA);
-	mJoint->SetBodyB(bodyB);
-
-	mJoint->SetWorld ( self );
-	mJoint->LuaRetain ( bodyA );
-	mJoint->LuaRetain ( bodyB );
-	self->LuaRetain ( mJoint );
-
-	mJoint->PushLuaUserdata ( state );
-	return 1;
-}
-
-//----------------------------------------------------------------//
-int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
@@ -574,22 +1402,71 @@ int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
 
-	btConeTwistConstraint*	coneC;	
-	coneC = new btConeTwistConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb); 
-	coneC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(coneC, true);	
+	btHingeConstraint* btJoint = new btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
+	btJoint->setDbgDrawSize(self->mDrawJointSize);	
+		
 
-	MOAIBulletJointCone* mJoint = new MOAIBulletJointCone (); 
+			self->mWorld->addConstraint(btJoint, true);
 
-	mJoint->SetJoint(coneC);
+		
+
+	MOAIBulletJointHinge* mJoint = new MOAIBulletJointHinge (); 
+
+	mJoint->SetJoint(btJoint);
+	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
 
 	mJoint->SetWorld ( self );
+
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
+
+
+
 	self->LuaRetain ( mJoint );
+
 	mJoint->PushLuaUserdata ( state );
+
+	return 1;
+}
+//----------------------------------------------------------------//
+int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
+	
+	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
+	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
+
+		if ( !( bodyA && bodyB )) return 0;
+
+		MOAIBulletTransform* transA = state.GetLuaObject < MOAIBulletTransform >( 4, true );
+		MOAIBulletTransform* transB = state.GetLuaObject < MOAIBulletTransform >( 5, true );
+
+			if ( !( transA && transB )) return 0;
+				btTransform ta = *transA->mTransform;
+				btTransform tb = *transB->mTransform;
+
+				btConeTwistConstraint* btJoint = new btConeTwistConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
+				btJoint->setDbgDrawSize(self->mDrawJointSize);
+
+				self->mWorld->addConstraint(btJoint, true);
+
+				MOAIBulletJointCone* mJoint = new MOAIBulletJointCone ();
+				mJoint->SetJoint(btJoint);
+				//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
+				mJoint->SetBodyA(bodyA);
+				mJoint->SetBodyB(bodyB);
+
+				mJoint->SetWorld ( self );
+				mJoint->LuaRetain ( bodyA );
+				mJoint->LuaRetain ( bodyB );
+
+			
+
+				self->LuaRetain ( mJoint );
+				mJoint->PushLuaUserdata ( state );
 
 
 	return 1;
@@ -613,10 +1490,10 @@ int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
 
 	bool joint_bool = state.GetValue < bool >( 6, false );
 
-	btSliderConstraint*	sliderC;	
-	sliderC = new btSliderConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); 
-	sliderC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(sliderC, true);
+
+	btSliderConstraint*	 btJoint = new btSliderConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); 
+	btJoint->setDbgDrawSize(self->mDrawJointSize);
+	self->mWorld->addConstraint(btJoint, true);
 
 		//sliderC->setBreakingImpulseThreshold(100.0f);
 		//sliderC->setLowerLinLimit(-15.0F);
@@ -628,13 +1505,19 @@ int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
 
 	MOAIBulletJointSlide* mJoint = new MOAIBulletJointSlide (); 
 
-	mJoint->SetJoint(sliderC);
+	mJoint->SetJoint(btJoint);
+	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
+
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
 
 	mJoint->SetWorld ( self );
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
+
+	
+
 	self->LuaRetain ( mJoint );
 	mJoint->PushLuaUserdata ( state );
 
@@ -644,6 +1527,7 @@ int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUN" )	
+
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
@@ -658,38 +1542,45 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
 
-
 			bool joint_bool = state.GetValue < bool >( 5, false );
-
-	btGeneric6DofConstraint*	freeDomeC;	
-	freeDomeC = new btGeneric6DofConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); //ANOTHER ARGGUMENT
-	freeDomeC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(freeDomeC, true);
+	
+	btGeneric6DofConstraint* btJoint = new btGeneric6DofConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); //ANOTHER ARGGUMENT
+	btJoint->setDbgDrawSize(self->mDrawJointSize);
+	self->mWorld->addConstraint(btJoint, true);
 
 
 //TODO: NEED TO ADD LUA CALL
-	freeDomeC->setBreakingImpulseThreshold(100.0f);
+	btJoint->setBreakingImpulseThreshold(100.0f);
 	btTransform sliderTransform;
 	btVector3 lowerSliderLimit = btVector3(-10,0,0);
 	btVector3 hiSliderLimit = btVector3(10,0,0);
 
-	freeDomeC->setLinearLowerLimit(lowerSliderLimit);
-	freeDomeC->setLinearUpperLimit(hiSliderLimit);
-	freeDomeC->setAngularLowerLimit(btVector3(-SIMD_PI,0,0));
-	freeDomeC->setAngularUpperLimit(btVector3(1.5,0,0));
+	btJoint->setLinearLowerLimit(lowerSliderLimit);
+	btJoint->setLinearUpperLimit(hiSliderLimit);
+	btJoint->setAngularLowerLimit(btVector3(-SIMD_PI,0,0));
+	btJoint->setAngularUpperLimit(btVector3(1.5,0,0));
 
-	freeDomeC->getTranslationalLimitMotor()->m_enableMotor[0] = true;
-	freeDomeC->getTranslationalLimitMotor()->m_targetVelocity[0] = -5.0f;
-	freeDomeC->getTranslationalLimitMotor()->m_maxMotorForce[0] = 0.1f;
+	btJoint->getTranslationalLimitMotor()->m_enableMotor[0] = true;
+	btJoint->getTranslationalLimitMotor()->m_targetVelocity[0] = -5.0f;
+	btJoint->getTranslationalLimitMotor()->m_maxMotorForce[0] = 0.1f;
+
+//*******************************
+//*******************************
 
 	MOAIBulletJointFreedom* mJoint = new MOAIBulletJointFreedom (); 
-	mJoint->SetJoint(freeDomeC);
+
+	mJoint->SetJoint(btJoint);
+	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
+
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
 	
 	mJoint->SetWorld ( self );
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
+
+
 	self->LuaRetain ( mJoint );
 	mJoint->PushLuaUserdata ( state );
 
@@ -718,10 +1609,11 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointFixed ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUN" )	
+		
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
-	
+		
 	if ( !( bodyA && bodyB )) return 0;
 
 		MOAIBulletTransform* transA = state.GetLuaObject < MOAIBulletTransform >( 4, true );
@@ -731,20 +1623,25 @@ int MOAIBulletWorld::_addJointFixed ( lua_State* L ) {
 
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
-
-	btFixedConstraint*	fixedC;	
-	fixedC = new btFixedConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb); 
-	fixedC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(fixedC, true);
+	
+	btFixedConstraint* btJoint = new btFixedConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb); 
+	btJoint->setDbgDrawSize(self->mDrawJointSize);
+	self->mWorld->addConstraint(btJoint, true);
 
 	MOAIBulletJointFixed* mJoint = new MOAIBulletJointFixed (); 
-	mJoint->SetJoint(fixedC);
+	mJoint->SetJoint(btJoint);
+	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
+
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
 
 	mJoint->SetWorld ( self );
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
+
+	
+
 	self->LuaRetain ( mJoint );
 	mJoint->PushLuaUserdata ( state );
 	return 1;
@@ -769,19 +1666,23 @@ int MOAIBulletWorld::_addJointPoint ( lua_State* L ) {
 	btVector3 pivotInA(a_x,a_y,a_z);
 	btVector3 pivotInB(b_x,b_y,b_z);
 
-	btPoint2PointConstraint*	PointC;	
-	PointC = new btPoint2PointConstraint(*bodyA->mBody, *bodyB->mBody, pivotInA, pivotInB); 
-	PointC->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(PointC, true);
+	btPoint2PointConstraint*	btJoint = new btPoint2PointConstraint(*bodyA->mBody, *bodyB->mBody, pivotInA, pivotInB); 
+	btJoint->setDbgDrawSize(self->mDrawJointSize);
+	self->mWorld->addConstraint(btJoint, true);
 
 	MOAIBulletJointPoint* mJoint = new MOAIBulletJointPoint (); 
-	mJoint->SetJoint(PointC);
+	mJoint->SetJoint(btJoint);
+	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
 	
 	mJoint->SetWorld ( self );
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
+
+
+
 	self->LuaRetain ( mJoint );
 
 	mJoint->PushLuaUserdata ( state );
@@ -819,15 +1720,15 @@ int MOAIBulletWorld::_setForceUpdateAllAabbs ( lua_State* L ) {
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_defaultMaxCollisionAlgorithmPoolSize ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
-	u32 defaultMaxCollisionAlgorithmPoolSize = state.GetValue < u32 >( 2, true );
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UN" )
+	int defaultMaxCollisionAlgorithmPoolSize = state.GetValue < int >( 2, 0 );
 	self->mConstructionInfo.m_defaultMaxCollisionAlgorithmPoolSize = defaultMaxCollisionAlgorithmPoolSize;
 	return 0;	
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_defaultMaxPersistentManifoldPoolSize ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
-	u32 defaultMaxCollisionAlgorithmPoolSize = state.GetValue < u32 >( 2, true );
+	int defaultMaxCollisionAlgorithmPoolSize = state.GetValue < int >( 2, 0 );
 	self->mConstructionInfo.m_defaultMaxPersistentManifoldPoolSize = defaultMaxCollisionAlgorithmPoolSize;
 	return 0;
 };
@@ -845,7 +1746,6 @@ int MOAIBulletWorld::_enableSPU	( lua_State* L ) {
 	self->mWorld->getDispatchInfo().m_enableSPU	= spu;
 	return 0;
 }
-
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_allowedCcdPenetration	( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
@@ -890,9 +1790,47 @@ int MOAIBulletWorld::_DrawDebugLua ( lua_State* L ) {
 	return 0;
 }
 //----------------------------------------------------------------//
+int MOAIBulletWorld::_forceStep ( lua_State* L ) {
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )	
+		self->OnUpdate(0);
+		return 0;
+};
+
+//----------------------------------------------------------------//
+int MOAIBulletWorld::_addCollisionObject ( lua_State* L ) {
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )	
+		//self->mWorld->addCollisionObject(); ///WHAT THE FUCK ???
+		return 0;
+};
+//----------------------------------------------------------------//
+int MOAIBulletWorld::_removeCollisionObject ( lua_State* L ) {
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )	
+		//self->mWorld->removeCollisionObject(); ///WHAT THE FUCK ???
+		return 0;
+};
+//----------------------------------------------------------------//
+
+
+
+
+
+//----------------------------------------------------------------//
+//----------------------------------------------------------------//
 void MOAIBulletWorld::RegisterLuaClass ( MOAILuaState& state ) {
 	MOAIAction::RegisterLuaClass ( state );		
-	state.SetField ( -1, "COMPOUND_SHAPE", ( u32 )1 );
+
+	state.SetField ( -1, "ACTIVE_TAG",				( u32 )1 );
+	state.SetField ( -1, "ISLAND_SLEEPING",			( u32 )2 );
+	state.SetField ( -1, "WANTS_DEACTIVATION",		( u32 )3 );
+	state.SetField ( -1, "DISABLE_DEACTIVATION",	( u32 )4 );
+	state.SetField ( -1, "DISABLE_SIMULATION",		( u32 )5 );
+
+//#define ACTIVE_TAG 1
+//#define ISLAND_SLEEPING 2
+//#define WANTS_DEACTIVATION 3
+//#define DISABLE_DEACTIVATION 4
+//#define DISABLE_SIMULATION 5
+
 }
 
 //----------------------------------------------------------------//
@@ -900,6 +1838,23 @@ void MOAIBulletWorld::RegisterLuaFuncs ( MOAILuaState& state ) {
 	MOAIAction::RegisterLuaFuncs ( state );
 	luaL_Reg regTable [] = {
 
+//*******************************************************
+//*******************************************************
+//TESTING
+		{"testJoint",					 _testJoint},
+		{"testRagDoll",					 _testRagDoll},
+		{"testCar",						 _testCar},
+		{"testCarUpdate",				 _testCarUpdate},
+//*******************************************************
+//*******************************************************
+
+
+
+
+
+
+		{"forceStep",					 _forceStep},
+	
 
 //MANIFOLD
 		{ "defaultMaxCollisionAlgorithmPoolSize",					_defaultMaxCollisionAlgorithmPoolSize }, 
@@ -933,6 +1888,17 @@ void MOAIBulletWorld::RegisterLuaFuncs ( MOAILuaState& state ) {
 		{ "iterations",					_Iterations },	
 //DEBUG DRAW
 		{"drawDebugLua",				_DrawDebugLua	},
+
+
+//COLLISION OBJECT
+	{"_addCollisionObject",				_addCollisionObject	},
+	{"_removeCollisionObject",			_removeCollisionObject	},
+
+
+
+
+
+
 
 		{ NULL, NULL }
 	};	

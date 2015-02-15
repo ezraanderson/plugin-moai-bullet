@@ -38,7 +38,7 @@
 int MOAIBulletWheel::_addWheelToVehicle ( lua_State* L ) {
 MOAI_LUA_SETUP ( MOAIBulletWheel, "U" )
 btRaycastVehicle::btVehicleTuning m_tuning; //WTF
-self->mVehicle->addWheel(*self->mConnect,*self->mWheelDirection,*self->mWheelAxle,self->mSuspensionRestLength,self->mWheelRadius,m_tuning,self->mIsFrontWheel);
+self->mVehicle->addWheel(self->mConnect,self->mWheelDirection,self->mWheelAxle,self->mSuspensionRestLength,self->mWheelRadius,m_tuning,self->mIsFrontWheel);
 return 0;
 };
 //----------------------------------------------------------------//
@@ -47,10 +47,7 @@ MOAI_LUA_SETUP ( MOAIBulletWheel, "UNNN" )
 float vecA		= state.GetValue < float >( 2, 0 );
 float vecB		= state.GetValue < float >( 3, 0 );
 float vecC		= state.GetValue < float >( 4, 0 );		
-btVector3 *v = self->mConnect;
-v->setX(vecA);
-v->setY(vecB);
-v->setZ(vecC);
+self->mConnect = btVector3(vecA,vecB,vecC);
 return 0;
 }
 //----------------------------------------------------------------//
@@ -58,12 +55,8 @@ int MOAIBulletWheel::_setWheelAxle ( lua_State* L ) {
 MOAI_LUA_SETUP ( MOAIBulletWheel, "UNNN" )
 float vecA		= state.GetValue < float >( 2, 0 );
 float vecB		= state.GetValue < float >( 3, 0 );
-float vecC		= state.GetValue < float >( 4, 0 );	
-btVector3 *v = self->mConnect;
-v->setX(vecA);
-v->setY(vecB);
-v->setZ(vecC);
-
+float vecC		= state.GetValue < float >( 4, 0 );		
+self->mConnect = btVector3(vecA,vecB,vecC);
 return 0;
 }
 //----------------------------------------------------------------//
@@ -93,34 +86,27 @@ MOAI_LUA_SETUP ( MOAIBulletWheel, "UNNN" )
 float vecA		= state.GetValue < float >( 2, 0 );
 float vecB		= state.GetValue < float >( 3, 0 );
 float vecC		= state.GetValue < float >( 4, 0 );		
-btVector3 *v = self->mConnect;
-v->setX(vecA);
-v->setY(vecB);
-v->setZ(vecC);
+self->mConnect = btVector3(vecA,vecB,vecC);
 return 0;	
 }
 //----------------------------------------------------------------//
 MOAIBulletWheel::MOAIBulletWheel () :
 mVehicle(0),
-mConnect(0),
-mWheelDirection(0),
-mWheelAxle(0),
+mConnect(0,0,0),
+mWheelDirection(0,-1,0),
+mWheelAxle(-1,0,0),
 mIsFrontWheel(false),
 mWheelRadius(0.7f),
 mSuspensionRestLength(0.6f)
 {	
 	RTTI_BEGIN
-		RTTI_EXTEND(MOAIBulletVehicle)
-		RTTI_END
-		mConnect = new btVector3(0, 0, 0);
-	mWheelDirection = new btVector3(0, -1, 0);
-	mWheelAxle = new btVector3(-1, 0, 0);
+		RTTI_EXTEND ( MOAIBulletVehicle )
+	RTTI_END
 }
 //----------------------------------------------------------------//
 MOAIBulletWheel::~MOAIBulletWheel () {
-	delete(mConnect);
-	delete(mWheelDirection);
-	delete(mWheelAxle);
+
+
 }
 //----------------------------------------------------------------//
 void MOAIBulletWheel::RegisterLuaClass ( MOAILuaState& state ) {

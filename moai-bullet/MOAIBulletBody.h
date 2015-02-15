@@ -49,8 +49,8 @@ private:
 	btCompoundShape*		mCompound;
 
 //FOR STATE SAVE
-	btVector3*	mRot;
-	btVector3*	mLoc;
+	btVector3	mRot;
+	btVector3	mLoc;
 	string		idName;
 
 	static int		_SetIdType		 ( lua_State* L );
@@ -72,15 +72,11 @@ private:
 	static int		_AddToBody				( lua_State* L );
 
 //STATE
-	static int		_stateSet				( lua_State* L );
-	static int		_stateRest				( lua_State* L );
+	static int		_StateSet				( lua_State* L );
+	static int		_StateRest				( lua_State* L );
 //CLEAR FORCE
-	static int		_clearForces			( lua_State* L );
+	static int		_ClearForces			( lua_State* L );
 
-//OBJECTS
-	static int		_AddRag				( lua_State* L );
-	static int		_AddCar				( lua_State* L );
-	static int		_CarUpdate			( lua_State* L );
 
 //LINEAR
 	static int		_SetLinearVelocity			( lua_State* L );
@@ -125,7 +121,13 @@ private:
 
 //ACTIVITY
 	static int		_SetKinematic		( lua_State* L );
+	static int		_SetDynamic		( lua_State* L );
+	
 	static int		_SetActivationState	( lua_State* L );
+	static int		_ForceActivationState	( lua_State* L );
+	
+
+
 
 //SET
 	static int		_SetCcdMotionThreshold		( lua_State* L );
