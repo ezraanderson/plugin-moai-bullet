@@ -167,6 +167,7 @@ public:
 	friend class MOAIBulletShape;
 	friend class MOAIBulletWorld;
 	friend class MOAIBulletJoint;
+	friend class MOAIBulletCollisionHandler;
 
 	DECL_LUA_FACTORY ( MOAIBulletBody )
 	//----------------------------------------------------------------//

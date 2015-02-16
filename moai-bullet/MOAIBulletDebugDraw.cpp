@@ -47,32 +47,37 @@
 
 //----------------------------------------------------------------//
 void  MOAIBulletDebugDraw::drawContactPoint(const btVector3& PointOnB,const btVector3& normalOnB,btScalar distance,int lifeTime,const btVector3& color){
-	//printf("drawContactPoint \n");
+		//printf("drawContactPoint \n");
 };
 //----------------------------------------------------------------//
 bool    MOAIBulletDebugDraw::isVisible(const btVector3& aabbMin,const btVector3& aabbMax){
-	//printf("isVisible \n");
+		//printf("isVisible \n");
 	return true;
 };
 //----------------------------------------------------------------//
 void  MOAIBulletDebugDraw::drawLine(const btVector3& from,const btVector3& to,const btVector3& color){
-MOAIGfxDevice& gfxDevice = MOAIGfxDevice::Get ();		
-gfxDevice.SetPenColor ( color.x(), color.y(), color.z(), 1.0f );
-mSize = mSize + (1);
-//FROM
-ZLVec3D vtx_from;
-vtx_from.mX = from.x() * this->mScale;
-vtx_from.mY = from.y() * this->mScale;
-vtx_from.mZ = from.z() * this->mScale;
-gfxDevice.WriteVtx ( vtx_from );
-gfxDevice.WriteFinalColor4b ();
-//TO
-ZLVec3D vtx_to;
-vtx_to.mX = to.x() * this->mScale;
-vtx_to.mY = to.y() * this->mScale;
-vtx_to.mZ = to.z() * this->mScale;
-gfxDevice.WriteVtx ( vtx_to );
-gfxDevice.WriteFinalColor4b ();		
+
+
+//IF POINT IS IN VIEW PORT CULL OR DRAW
+//
+
+	MOAIGfxDevice& gfxDevice = MOAIGfxDevice::Get ();		
+	gfxDevice.SetPenColor ( color.x(), color.y(), color.z(), 1.0f );
+	mSize = mSize + (1);
+	//FROM
+	ZLVec3D vtx_from;
+	vtx_from.mX = from.x() * this->mScale;
+	vtx_from.mY = from.y() * this->mScale;
+	vtx_from.mZ = from.z() * this->mScale;
+	gfxDevice.WriteVtx ( vtx_from );
+	gfxDevice.WriteFinalColor4b ();
+	//TO
+	ZLVec3D vtx_to;
+	vtx_to.mX = to.x() * this->mScale;
+	vtx_to.mY = to.y() * this->mScale;
+	vtx_to.mZ = to.z() * this->mScale;
+	gfxDevice.WriteVtx ( vtx_to );
+	gfxDevice.WriteFinalColor4b ();		
 
 };
 //----------------------------------------------------------------//
@@ -94,11 +99,8 @@ void  MOAIBulletDebugDraw::setDebugMode(int debugMode){
 //----------------------------------------------------------------//
 int    MOAIBulletDebugDraw::getDebugMode()const{
 	//return (btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
-
-		return (btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
 	//return (btIDebugDraw::DBG_FastWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
-	
-
+	return (btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
 };
 //----------------------------------------------------------------//
 void MOAIBulletDebugDraw::drawAabb(const btVector3& from,const btVector3& to,const btVector3& color){
@@ -118,11 +120,5 @@ vtx.mZ = z * this->mScale;
 gfxDevice.WriteVtx ( vtx );
 gfxDevice.WriteFinalColor4b ();
 }
-//----------------------------------------------------------------//
-//void MOAIBulletDebugDraw::resetSize ( ) {
-//	mSize = 0;
-//}
-
-
 
 

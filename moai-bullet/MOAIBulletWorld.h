@@ -4,9 +4,14 @@
 
 #include <bullet/src/btBulletDynamicsCommon.h>
 #include <bullet/src/LinearMath/BtIdebugDraw.h>
+#include <bullet/src/LinearMath/BtIdebugDraw.h>
 
+//*******************************************************************************
 //#include <bullet/src/LinearMath/btQuickprof.h> // #ifndef BT_NO_PROFILE-
 //#include <moai-bullet/btRigidBodyWithCollisionEvents.h> //CUSTOM CALL BACKS DON"TWORK
+//*******************************************************************************
+
+
 
 
 
@@ -16,7 +21,7 @@ class MOAIBulletShape;
 class MOAIBulletJoint;
 class MOAIBulletArbiter;
 class MOAIBulletWorld;
-
+class MOAIBulletCollisionHandler;
 
 class MOAIBulletPrim :
 	public virtual MOAILuaObject  {
@@ -53,10 +58,6 @@ class MOAIBulletWorld :
 
 private:
 
-
-MOAILuaSharedPtr < MOAIBulletArbiter > mArbiter;
-
-
 btDefaultCollisionConstructionInfo mConstructionInfo;
 //Bullet collision debug-draw
 MOAIBulletDebugDraw* mDebugDraw;
@@ -70,6 +71,10 @@ btBroadphaseInterface* mBroadphase;
 btConstraintSolver* mSolver;
 /// Bullet physics world.
 btDiscreteDynamicsWorld* mWorld;
+
+MOAIBulletCollisionHandler *mCollision;
+
+
 
 MOAIBulletPrim*		mDestroyBodies;
 MOAIBulletPrim*		mDestroyShapes; //SHAPES LIKE THIS, MAYBE NOT BECAUSE MANY SHAPES ON ONE BODY?
@@ -88,8 +93,10 @@ bool  mLock;
 static int		_forceStep			    ( lua_State* L );
 static int		_DrawDebugLua		    ( lua_State* L );
 
-static int		_testObj				    ( lua_State* L );
+static int		_testObj				( lua_State* L );
 
+static int		_debugDraw				( lua_State* L );
+static int		_collisionHandler		( lua_State* L );
 
 static int		_create					( lua_State* L );
 
@@ -161,26 +168,6 @@ public:
 
 
 
-
-
-	static bool callbackFunc(btManifoldPoint& cp,const btCollisionObject* obj1,int id1,int index1,const btCollisionObject* obj2,int id2,int index2);
-	static void mNearCallback(btBroadphasePair& collisionPair, btCollisionDispatcher& dispatcher, const btDispatcherInfo& dispatchInfo);
-
-
-
-
-
-
-
-// ICollisionEvents
-//virtual bool	needsCollision(btCollisionObject* body0,btCollisionObject* body1);
-//virtual bool	needsResponse(btCollisionObject* body0,btCollisionObject* body1);
-//virtual void	dispatchAllCollisionPairs(btOverlappingPairCache* pairCache,const btDispatcherInfo& dispatchInfo,btDispatcher* dispatcher);
-
-//protected :
-//virtual void  OnCollisionStart(btRigidBodyWithEvents* thisBodyA,btCollisionObject* bodyB,const btVector3& localSpaceContactPoint,const btVector3& worldSpaceContactPoint,const btVector3& worldSpaceContactNormal,const btScalar penetrationDistance,const btScalar appliedImpulse);
-//virtual void  OnCollisionContinue(btRigidBodyWithEvents* thisBodyA,btCollisionObject* bodyB,const btVector3& localSpaceContactPoint,const btVector3& worldSpaceContactPoint,const btVector3& worldSpaceContactNormal,const btScalar penetrationDistance,const btScalar appliedImpulse);
-//virtual void  OnCollisionStop(btRigidBodyWithEvents* thisBodyA,btCollisionObject* bodyB,const btVector3& localSpaceContactPoint,const btVector3& worldSpaceContactPoint,const btVector3& worldSpaceContactNormal,const btScalar penetrationDistance,const btScalar appliedImpulse);	
 
 
 

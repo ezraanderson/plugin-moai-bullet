@@ -7,7 +7,6 @@ private:
 	//m_tuning,
 	btRaycastVehicle *mVehicle;
 
-
 	btVector3 *mConnect;
 	btVector3 *mWheelDirection;
 	btVector3 *mWheelAxle;

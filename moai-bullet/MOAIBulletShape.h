@@ -16,15 +16,6 @@ private:
 	btCollisionShape*		mShape;
 	btCompoundShape*		mCompound;
 	btRigidBody*			mBody;	
-	
-//SHOULD BE VEC3
-	float mRot_x;
-	float mRot_y;
-	float mRot_z;
-
-	float mLoc_x;
-	float mLoc_y;
-	float mLoc_z;
 
 //US MOAI OR BULLET VECTOR
 	btVector3* mRot;
