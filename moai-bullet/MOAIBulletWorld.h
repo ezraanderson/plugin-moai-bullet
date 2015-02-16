@@ -83,20 +83,12 @@ bool  mLock;
 
 
 
-//----------------------------------------------------------------//
-static int		_testJoint			( lua_State* L );
-static int		_testRagDoll		( lua_State* L );
-static int		_testCar			( lua_State* L );
-static int		_testCarUpdate			( lua_State* L );
 
 //----------------------------------------------------------------//
 static int		_forceStep			    ( lua_State* L );
 static int		_DrawDebugLua		    ( lua_State* L );
 
-
-
-
-
+static int		_testObj				    ( lua_State* L );
 
 
 static int		_create					( lua_State* L );
@@ -175,7 +167,7 @@ public:
 	static void mNearCallback(btBroadphasePair& collisionPair, btCollisionDispatcher& dispatcher, const btDispatcherInfo& dispatchInfo);
 
 
-btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape);
+
 
 
 
