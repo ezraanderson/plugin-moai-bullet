@@ -18,9 +18,10 @@ class MOAIBulletJoint :
 	public MOAIBulletPrim {
 protected:
 	
-	btTypedConstraint*	mJoint;
-	MOAIBulletBody*		mBodyA;
-	MOAIBulletBody*		mBodyB;
+	btTypedConstraint*		 mJoint;
+	MOAIBulletBody*			 mBodyA;
+	MOAIBulletBody*			 mBodyB;
+	btDiscreteDynamicsWorld* mWorld; 
 
 	//----------------------------------------------------------------//
 	static int			_destroy							( lua_State* L );
@@ -29,12 +30,15 @@ protected:
 	static int			_setBreakingImpulse					( lua_State* L );
 	static int			_getBreakingImpulse					( lua_State* L );
 	static int			_isEnabled							( lua_State* L );
-	static int			_setEnabled							( lua_State* L );	
+	static int			_setEnabled							( lua_State* L );
+	static int			_setDebugDrawSize					( lua_State* L );	
+	static int			_addToWorld								( lua_State* L );
 
 	//----------------------------------------------------------------//
 	void				SetJoint				( btTypedConstraint* joint );
 	void				SetBodyA				( MOAIBulletBody* body );
 	void				SetBodyB				( MOAIBulletBody* body );
+	void				SetWorld				(btDiscreteDynamicsWorld* world); 
 
 public:
 	

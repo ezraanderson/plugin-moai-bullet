@@ -583,7 +583,7 @@ btVector3 wheelAxleCS(-1,0,0);
 
 //--------------------------------------------------------------------//
 int MOAIBulletWorld::_testCar ( lua_State* L ) {
-MOAI_LUA_SETUP ( MOAIBulletWorld, "UN" )
+MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
 
 btCollisionShape*	chassisShape = new btBoxShape(btVector3(1.f,0.5f,2.f));
 btCompoundShape*	compound	 = new btCompoundShape();
@@ -1380,13 +1380,18 @@ int MOAIBulletWorld::_newBody ( lua_State* L ) {
 	body->PushLuaUserdata ( state );
 	return 1;
 }
+
+
+
+
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointHinge ( lua_State* L ) {	
 //DISSABLE COLLISION BETWEEN BODIES --> self->mWorld->addConstraint(btJoint, false);
 //USE FRAME A						--> btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
 
 
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUB" )	
+
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
@@ -1399,41 +1404,34 @@ int MOAIBulletWorld::_addJointHinge ( lua_State* L ) {
 
 		if ( !( transA && transB )) return 0;
 
+			bool joint_bool = state.GetValue < bool >( 6, false );
+
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
 
-	btHingeConstraint* btJoint = new btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
-	btJoint->setDbgDrawSize(self->mDrawJointSize);	
-		
+			btHingeConstraint* btJoint = new btHingeConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool);
+			btJoint->setDbgDrawSize(self->mDrawJointSize);	
 
-			self->mWorld->addConstraint(btJoint, true);
+			MOAIBulletJointHinge* mJoint = new MOAIBulletJointHinge (); 
 
-		
-
-	MOAIBulletJointHinge* mJoint = new MOAIBulletJointHinge (); 
-
-	mJoint->SetJoint(btJoint);
-	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
-
-	mJoint->SetBodyA(bodyA);
-	mJoint->SetBodyB(bodyB);
-
-	mJoint->SetWorld ( self );
-
-	mJoint->LuaRetain ( bodyA );
-	mJoint->LuaRetain ( bodyB );
+			mJoint->SetJoint(btJoint); 	 // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
 
 
+			mJoint->SetBodyA(bodyA);
+			mJoint->SetBodyB(bodyB);
+			mJoint->SetWorld ( self->mWorld );
 
-	self->LuaRetain ( mJoint );
+			mJoint->LuaRetain ( bodyA );
+			mJoint->LuaRetain ( bodyB );
 
-	mJoint->PushLuaUserdata ( state );
+			self->LuaRetain ( mJoint );
+			mJoint->PushLuaUserdata ( state );
 
 	return 1;
 }
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUB" )	
 	
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
@@ -1444,25 +1442,25 @@ int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
 		MOAIBulletTransform* transB = state.GetLuaObject < MOAIBulletTransform >( 5, true );
 
 			if ( !( transA && transB )) return 0;
+
+				//NOT USED
+				bool joint_bool = state.GetValue < bool >( 6, false );
+
 				btTransform ta = *transA->mTransform;
 				btTransform tb = *transB->mTransform;
 
 				btConeTwistConstraint* btJoint = new btConeTwistConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb);
 				btJoint->setDbgDrawSize(self->mDrawJointSize);
 
-				self->mWorld->addConstraint(btJoint, true);
-
 				MOAIBulletJointCone* mJoint = new MOAIBulletJointCone ();
-				mJoint->SetJoint(btJoint);
-				//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+				mJoint->SetJoint(btJoint);  // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
 
 				mJoint->SetBodyA(bodyA);
 				mJoint->SetBodyB(bodyB);
+				mJoint->SetWorld ( self->mWorld );
 
-				mJoint->SetWorld ( self );
 				mJoint->LuaRetain ( bodyA );
 				mJoint->LuaRetain ( bodyB );
-
 			
 
 				self->LuaRetain ( mJoint );
@@ -1473,7 +1471,7 @@ int MOAIBulletWorld::_addJointCone ( lua_State* L ) {
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUN" )	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUB" )	
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
@@ -1488,12 +1486,28 @@ int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
 
-	bool joint_bool = state.GetValue < bool >( 6, false );
+			bool joint_bool = state.GetValue < bool >( 6, false );
+
+			btSliderConstraint*	 btJoint = new btSliderConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); 
+			btJoint->setDbgDrawSize(self->mDrawJointSize);
+
+			MOAIBulletJointSlide* mJoint = new MOAIBulletJointSlide (); 
+			mJoint->SetJoint(btJoint); // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
+
+			mJoint->SetBodyA(bodyA);
+			mJoint->SetBodyB(bodyB);
+			mJoint->SetWorld ( self->mWorld );
+
+			mJoint->LuaRetain ( bodyA );
+			mJoint->LuaRetain ( bodyB );	
+
+			self->LuaRetain ( mJoint );
+			mJoint->PushLuaUserdata ( state );
 
 
-	btSliderConstraint*	 btJoint = new btSliderConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); 
-	btJoint->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(btJoint, true);
+
+//*******************************************************************
+//*******************************************************************
 
 		//sliderC->setBreakingImpulseThreshold(100.0f);
 		//sliderC->setLowerLinLimit(-15.0F);
@@ -1502,31 +1516,18 @@ int MOAIBulletWorld::_addJointSlider ( lua_State* L ) {
 		//sliderC->setUpperAngLimit( SIMD_PI / 3.0F);
 		//self->mWorld->addConstraint(sliderC, true);
 
-
-	MOAIBulletJointSlide* mJoint = new MOAIBulletJointSlide (); 
-
-	mJoint->SetJoint(btJoint);
-	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+//*******************************************************************
+//*******************************************************************
 
 
-	mJoint->SetBodyA(bodyA);
-	mJoint->SetBodyB(bodyB);
 
-	mJoint->SetWorld ( self );
-	mJoint->LuaRetain ( bodyA );
-	mJoint->LuaRetain ( bodyB );
-
-	
-
-	self->LuaRetain ( mJoint );
-	mJoint->PushLuaUserdata ( state );
 
 	
 	return 1;
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUN" )	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUB" )	
 
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
@@ -1539,17 +1540,32 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 
 		if ( !( transA && transB )) return 0;
 
+			bool joint_bool = state.GetValue < bool >( 6, false );
+
 			btTransform ta = *transA->mTransform;
-			btTransform tb = *transB->mTransform;
-
-			bool joint_bool = state.GetValue < bool >( 5, false );
+			btTransform tb = *transB->mTransform;		
 	
-	btGeneric6DofConstraint* btJoint = new btGeneric6DofConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); //ANOTHER ARGGUMENT
-	btJoint->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(btJoint, true);
+			btGeneric6DofConstraint* btJoint = new btGeneric6DofConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb,joint_bool); //ANOTHER ARGGUMENT
+			btJoint->setDbgDrawSize(self->mDrawJointSize);
+
+			MOAIBulletJointFreedom* mJoint = new MOAIBulletJointFreedom (); 
+
+			mJoint->SetJoint(btJoint);  // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
+
+			mJoint->SetBodyA(bodyA);
+			mJoint->SetBodyB(bodyB);
+
+			mJoint->SetWorld ( self->mWorld );
+			mJoint->LuaRetain ( bodyA );
+			mJoint->LuaRetain ( bodyB );
+
+			self->LuaRetain ( mJoint );
+			mJoint->PushLuaUserdata ( state );
 
 
-//TODO: NEED TO ADD LUA CALL
+
+//*******************************************************************
+//*******************************************************************
 	btJoint->setBreakingImpulseThreshold(100.0f);
 	btTransform sliderTransform;
 	btVector3 lowerSliderLimit = btVector3(-10,0,0);
@@ -1564,25 +1580,9 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 	btJoint->getTranslationalLimitMotor()->m_targetVelocity[0] = -5.0f;
 	btJoint->getTranslationalLimitMotor()->m_maxMotorForce[0] = 0.1f;
 
-//*******************************
-//*******************************
+//*******************************************************************
+//*******************************************************************
 
-	MOAIBulletJointFreedom* mJoint = new MOAIBulletJointFreedom (); 
-
-	mJoint->SetJoint(btJoint);
-	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
-
-
-	mJoint->SetBodyA(bodyA);
-	mJoint->SetBodyB(bodyB);
-	
-	mJoint->SetWorld ( self );
-	mJoint->LuaRetain ( bodyA );
-	mJoint->LuaRetain ( bodyB );
-
-
-	self->LuaRetain ( mJoint );
-	mJoint->PushLuaUserdata ( state );
 
 
 //***********************************************************************
@@ -1608,7 +1608,7 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointFixed ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUN" )	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUU" )	
 		
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
@@ -1621,71 +1621,85 @@ int MOAIBulletWorld::_addJointFixed ( lua_State* L ) {
 
 		if ( !( transA && transB )) return 0;
 
+			//NOT USED
+			bool joint_bool = state.GetValue < bool >( 6, false );
+
 			btTransform ta = *transA->mTransform;
 			btTransform tb = *transB->mTransform;
 	
-	btFixedConstraint* btJoint = new btFixedConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb); 
-	btJoint->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(btJoint, true);
+			btFixedConstraint* btJoint = new btFixedConstraint(*bodyA->mBody, *bodyB->mBody, ta, tb); 
+			btJoint->setDbgDrawSize(self->mDrawJointSize);
 
-	MOAIBulletJointFixed* mJoint = new MOAIBulletJointFixed (); 
-	mJoint->SetJoint(btJoint);
-	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+			MOAIBulletJointFixed* mJoint = new MOAIBulletJointFixed (); 
 
+			mJoint->SetJoint(btJoint);  // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
 
-	mJoint->SetBodyA(bodyA);
-	mJoint->SetBodyB(bodyB);
+			mJoint->SetBodyA(bodyA);
+			mJoint->SetBodyB(bodyB);
+			mJoint->SetWorld ( self->mWorld );
 
-	mJoint->SetWorld ( self );
-	mJoint->LuaRetain ( bodyA );
-	mJoint->LuaRetain ( bodyB );
+			mJoint->LuaRetain ( bodyA );
+			mJoint->LuaRetain ( bodyB );
 
-	
+			self->LuaRetain ( mJoint );
+			mJoint->PushLuaUserdata ( state );
 
-	self->LuaRetain ( mJoint );
-	mJoint->PushLuaUserdata ( state );
 	return 1;
 };
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_addJointPoint ( lua_State* L ) {
-	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUNNNNNN" )	
+//PIGGY BACK OFF TRANSFORM ??
+//REQURES VEC3?
+
+	
+	MOAI_LUA_SETUP ( MOAIBulletWorld, "UUUUUB" )
 
 	MOAIBulletBody* bodyA = state.GetLuaObject < MOAIBulletBody >( 2, true );
 	MOAIBulletBody* bodyB = state.GetLuaObject < MOAIBulletBody >( 3, true );
 	
 	if ( !( bodyA && bodyB )) return 0;
 
-	float a_x = state.GetValue < float >( 4, 0.0f );
-	float a_y = state.GetValue < float >( 5, 0.0f );
-	float a_z = state.GetValue < float >( 6, 0.0f );
+	//float a_x = state.GetValue < float >( 4, 0.0f );
+	//float a_y = state.GetValue < float >( 5, 0.0f );
+	//float a_z = state.GetValue < float >( 6, 0.0f );
 
-	float b_x = state.GetValue < float >( 7, 0.0f );
-	float b_y = state.GetValue < float >( 8, 0.0f );
-	float b_z = state.GetValue < float >( 9, 0.0f );
+	//float b_x = state.GetValue < float >( 7, 0.0f );
+	//float b_y = state.GetValue < float >( 8, 0.0f );
+	//float b_z = state.GetValue < float >( 9, 0.0f );
+	//if ( !( bodyA && bodyB )) return 0;
 
-	btVector3 pivotInA(a_x,a_y,a_z);
-	btVector3 pivotInB(b_x,b_y,b_z);
+		MOAIBulletTransform* transA = state.GetLuaObject < MOAIBulletTransform >( 4, true );
+		MOAIBulletTransform* transB = state.GetLuaObject < MOAIBulletTransform >( 5, true );
+
+		if ( !( transA && transB )) return 0;
+
+		btTransform* mTransformA = ( btTransform* )transA->mTransform;
+		btTransform* mTransformB = ( btTransform* )transB->mTransform;
+
+		btVector3 pivotInA = mTransformA->getOrigin();
+		btVector3 pivotInB = mTransformB->getOrigin();
+
+		//printf("%f %f %f \n",mTransformA->getOrigin().x(),mTransformA->getOrigin().y(),mTransformA->getOrigin().z());
+		//printf("%f %f %f \n",mTransformA->getOrigin().x(),mTransformA->getOrigin().getY(),mTransformA->getOrigin().getZ());
+		
 
 	btPoint2PointConstraint*	btJoint = new btPoint2PointConstraint(*bodyA->mBody, *bodyB->mBody, pivotInA, pivotInB); 
 	btJoint->setDbgDrawSize(self->mDrawJointSize);
-	self->mWorld->addConstraint(btJoint, true);
 
 	MOAIBulletJointPoint* mJoint = new MOAIBulletJointPoint (); 
-	mJoint->SetJoint(btJoint);
-	//btJoint->setUserConstraintPtr(mJoint); //SET THIES TWICE ??
+
+	mJoint->SetJoint(btJoint); 	 // HERE SETS --> btJoint->setUserConstraintPtr(mJoint); 
 
 	mJoint->SetBodyA(bodyA);
 	mJoint->SetBodyB(bodyB);
-	
-	mJoint->SetWorld ( self );
+	mJoint->SetWorld ( self->mWorld );
+
 	mJoint->LuaRetain ( bodyA );
 	mJoint->LuaRetain ( bodyB );
 
-
-
 	self->LuaRetain ( mJoint );
-
 	mJoint->PushLuaUserdata ( state );
+
 	return 1;
 };
 //----------------------------------------------------------------//
