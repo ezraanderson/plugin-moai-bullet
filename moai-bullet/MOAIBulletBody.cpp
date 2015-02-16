@@ -481,8 +481,7 @@ return 0;
 int MOAIBulletBody::_SetActivationState ( lua_State* L ) {		
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	;	
 	int state_set = state.GetValue < int >( 2, 1 );
-		self->mBody->setActivationState(state_set);
-
+	self->mBody->setActivationState(state_set);
 	return 0;
 };
 //----------------------------------------------------------------//
@@ -490,7 +489,6 @@ int MOAIBulletBody::_ForceActivationState ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	;	
 	int state_set = state.GetValue < int >( 2, 1 );
 		self->mBody->forceActivationState(state_set);
-
 	return 0;
 };
 
@@ -501,8 +499,6 @@ MOAI_LUA_SETUP ( MOAIBulletBody, "U" )	;
 self->mBody->setCollisionFlags( self->mBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 self->mBody->setActivationState(DISABLE_DEACTIVATION);
 return 0;
-
-
 };
 //----------------------------------------------------------------//
 int MOAIBulletBody::_SetDynamic ( lua_State* L ) {
@@ -511,7 +507,6 @@ int MOAIBulletBody::_SetDynamic ( lua_State* L ) {
 	self->mBody->forceActivationState(ACTIVE_TAG);
 	return 0;
 };
-
 
 //----------------------------------------------------------------//
 int MOAIBulletBody::_NoResponse ( lua_State* L ) {
@@ -919,8 +914,8 @@ int MOAIBulletBody::_ClearForces ( lua_State* L ) {
 	return 0;
 }
 //----------------------------------------------------------------//
-void MOAIBulletBody::setWorld (btDiscreteDynamicsWorld* world_) {
-	this->mWorld = world_;
+void MOAIBulletBody::setWorld (btDiscreteDynamicsWorld* world) {
+	this->mWorld = world;
 };
 //----------------------------------------------------------------//
 void MOAIBulletBody::RegisterLuaClass ( MOAILuaState& state ) {

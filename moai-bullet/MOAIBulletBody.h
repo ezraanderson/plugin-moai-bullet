@@ -171,7 +171,7 @@ public:
 	DECL_LUA_FACTORY ( MOAIBulletBody )
 	//----------------------------------------------------------------//
 	
-	void			setWorld				(btDiscreteDynamicsWorld* world_);	
+	void			setWorld				(btDiscreteDynamicsWorld* world);	
 	void			HandleCollision			(u32 eventType, MOAIBulletBody* bodyA, MOAIBulletBody* bodyB);
 	void			Destroy					();
 					MOAIBulletBody			();
