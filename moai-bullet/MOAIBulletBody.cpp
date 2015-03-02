@@ -10,6 +10,9 @@
 #include <moai-bullet/MOAIBulletTransform.h>
 
 
+
+
+
 //----------------------------------------------------------------//
 int MOAIBulletBody::_SetLinearVelocity ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	
@@ -559,6 +562,14 @@ int MOAIBulletBody::_SetDeactivationTime ( lua_State* L ) {
 	return 0;
 };
 //----------------------------------------------------------------//
+int MOAIBulletBody::_SetContactProcessingThreshold ( lua_State* L ) {
+	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	;
+	float setCcdMotionThreshold = state.GetValue < float >( 2, 0.0f );	
+	self->mBody->setContactProcessingThreshold(btScalar(setCcdMotionThreshold));	
+	return 0;
+};
+
+//----------------------------------------------------------------//
 int MOAIBulletBody::_SetCcdMotionThreshold ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	;
 	float setCcdMotionThreshold = state.GetValue < float >( 2, 0.0f );	
@@ -583,22 +594,22 @@ void MOAIBulletBody::Destroy () {
 	delete (this->mBody);
 	delete (this->mCompound);
 	delete (this->mMotion);
+	delete (this->mRot);
+	delete (this->mLoc);
 }
 //----------------------------------------------------------------//
 MOAIBulletBody::MOAIBulletBody () :
 	mBody ( 0 ),
 	mMotion( 0 ),
 	mCompound( 0 ),
-	mRot(0),
-	mLoc(0),
+	mRot( 0 ),
+	mLoc( 0 ),
 	idName("id"),
 	mCollision_group(DEFAULT_COLLISION_GROUP),
 	mCollision_mask(DEFAULT_COLLISION_MASK)
-{
-	
- mRot = new btVector3(0, 0, 0);
- mLoc = new btVector3(0, 0, 0);
-
+{	
+	 mRot = new btVector3(0, 0, 0);
+	 mLoc = new btVector3(0, 0, 0);
 
 RTTI_BEGIN
 	RTTI_EXTEND ( MOAILuaObject )
@@ -608,9 +619,6 @@ RTTI_END
 //----------------------------------------------------------------//
 MOAIBulletBody::~MOAIBulletBody () {
 	printf("\nMOAIBulletBody::~MOAIBulletBody\n");
-	 delete(mRot);
-	 delete(mLoc);
-
 	this->Destroy ();	
 }
 //----------------------------------------------------------------//
@@ -646,7 +654,6 @@ void MOAIBulletBody::HandleCollision ( u32 eventType, MOAIBulletBody* bodyA,MOAI
 		}
 	};	
 }
-
 //----------------------------------------------------------------//
 int MOAIBulletBody::_SetFilter ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UNN" )	;
@@ -656,9 +663,8 @@ int MOAIBulletBody::_SetFilter ( lua_State* L ) {
 	self->mCollision_mask = mask;
 	return 0;
 };
-
 //----------------------------------------------------------------//
-//I DON't DON't UNDERSAND
+//I DON't DON'T UNDERSTAND
 int MOAIBulletBody::_SetCollisionFlags ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletBody, "UN" )	;
 	 int mask = state.GetValue <  int  >( 2, 1 );	
@@ -672,47 +678,63 @@ int MOAIBulletBody::_AddToWorld ( lua_State* L ) {
 
 	self->mWorld->addRigidBody(self->mBody,self->mCollision_group,self->mCollision_mask);
 
-//self->mWorld->addRigidBody(self->mBody);
-// self->mWorld->addRigidBody(self->mBody);
-// self->mBody->setCollisionFlags(self->mBody->getCollisionFlags() | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
-//static_cast <btRigidBodyWithEvents*>(self->mBody)->setMonitorCollisions(true);
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+		//self->mWorld->addRigidBody(self->mBody);
+		// self->mWorld->addRigidBody(self->mBody);
+		// self->mBody->setCollisionFlags(self->mBody->getCollisionFlags() | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+
+		//static_cast <btRigidBodyWithEvents*>(self->mBody)->setMonitorCollisions(true);
  
-//bool filter = state.GetValue <  bool  >( 2, false );
-//if( filter == true) {
-////	printf("FILTER TRUE \n");
-//	self->mWorld->addRigidBody(self->mBody,self->mCollision_group,self->mCollision_mask);
-//} else {
-//// 	printf("FILTER FALSE \n");
-//	self->mWorld->addRigidBody(self->mBody);
-//}
+		//bool filter = state.GetValue <  bool  >( 2, false );
+		//if( filter == true) {
+		////	printf("FILTER TRUE \n");
+		//	self->mWorld->addRigidBody(self->mBody,self->mCollision_group,self->mCollision_mask);
+		//} else {
+		//// 	printf("FILTER FALSE \n");
+		//	self->mWorld->addRigidBody(self->mBody);
+		//}
 
 
-//#define BIT(x) (1<<(x))
-//enum collisiontypes {
-//    COL_NOTHING = 0, //<Collide with nothing
-//    COL_SHIP = BIT(0), //<Collide with ships
-//    COL_WALL = BIT(1), //<Collide with walls
-//    COL_POWERUP = BIT(2) //<Collide with powerups
-//}
-//
-//int shipCollidesWith = COL_WALL;
-//int wallCollidesWith = COL_NOTHING;
-//int powerupCollidesWith = COL_SHIP | COL_WALL;
+		//#define BIT(x) (1<<(x))
+		//enum collisiontypes {
+		//    COL_NOTHING = 0, //<Collide with nothing
+		//    COL_SHIP = BIT(0), //<Collide with ships
+		//    COL_WALL = BIT(1), //<Collide with walls
+		//    COL_POWERUP = BIT(2) //<Collide with powerups
+		//}
+		//
+		//int shipCollidesWith = COL_WALL;
+		//int wallCollidesWith = COL_NOTHING;
+		//int powerupCollidesWith = COL_SHIP | COL_WALL;
 
 
-//btRigidBody ship; // Set up the other ship stuff
-//btRigidBody wall; // Set up the other wall stuff
-//btRigidBody powerup; // Set up the other powerup stuff
-//
-//mWorld->addRigidBody(ship, COL_SHIP, shipCollidesWith);
-//mWorld->addRigidBody(wall, COL_WALL, wallCollidesWith);
-//mWorld->addRigidBody(powerup, COL_POWERUP, powerupCollidesWith);
+		//btRigidBody ship; // Set up the other ship stuff
+		//btRigidBody wall; // Set up the other wall stuff
+		//btRigidBody powerup; // Set up the other powerup stuff
+		//
+		//mWorld->addRigidBody(ship, COL_SHIP, shipCollidesWith);
+		//mWorld->addRigidBody(wall, COL_WALL, wallCollidesWith);
+		//mWorld->addRigidBody(powerup, COL_POWERUP, powerupCollidesWith);
 	
-//	addRigidBody 	( 	btRigidBody *  	body,short  	group,short  	mask ) 	
+		//	addRigidBody 	( 	btRigidBody *  	body,short  	group,short  	mask ) 	
 
-//printf("%d %d \n",self->mCollision_group,self->mCollision_mask);
-//self->mWorld->addRigidBody(self->mBody,self->mCollision_group,self->mCollision_mask);
+		//printf("%d %d \n",self->mCollision_group,self->mCollision_mask);
+		//self->mWorld->addRigidBody(self->mBody,self->mCollision_group,self->mCollision_mask);
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
 
 
 	return 0;
@@ -720,45 +742,14 @@ int MOAIBulletBody::_AddToWorld ( lua_State* L ) {
 
 
 
-
-
-
-
-
 //****************************************************************************
 //****************************************************************************
 //****************************************************************************
 //****************************************************************************
 //****************************************************************************
-//MANUALL SET A SHAPE TO A BODY
-//NO LONGER WORKS
-int MOAIBulletBody::_AddToBody ( lua_State* L ) {
-MOAI_LUA_SETUP ( MOAIBulletBody, "UU" )
-MOAIBulletShape* shapeA = state.GetLuaObject < MOAIBulletShape >( 2, true );
-	btTransform t; 
-	t.setIdentity();
-	t.setOrigin(btVector3 ( 0,0,0));
-	t.getBasis().setEulerZYX(0,0,0);
- 	self->mCompound->addChildShape(t,shapeA->mShape); //MAKE FRIEND CLASS
-return 0;
-};
-//****************************************************************************
-//****************************************************************************
-//****************************************************************************
-//****************************************************************************
-//****************************************************************************
-
-
-
-
-
-
-
-
-
 
 //----------------------------------------------------------------//
-//MAYBE ADD VELOCITY
+//MAYBE ADD LIN AND ANG VELOCITY
 int	MOAIBulletBody::_StateSet( lua_State* L ){
 MOAI_LUA_SETUP ( MOAIBulletBody, "U" )	
 	btVector3 origine = self->mBody->getWorldTransform().getOrigin();
@@ -768,8 +759,8 @@ MOAI_LUA_SETUP ( MOAIBulletBody, "U" )
 
 	btQuaternion rotation = self->mBody->getWorldTransform().getRotation();
 	self->mRot->setX(rotation.x());
-	self->mRot->setX(rotation.y());
-	self->mRot->setX(rotation.z());
+	self->mRot->setY(rotation.y());
+	self->mRot->setZ(rotation.z());
 
 return 0;
 };
@@ -935,8 +926,9 @@ void MOAIBulletBody::RegisterLuaFuncs ( MOAILuaState& state ) {
 { "setIdName",							_SetIdName }, 
 { "setIdType",							_SetIdType },
 
-//
-{ "cleanProxyFromPairs",					_CleanProxyFromPairs }, 
+
+{ "setContactProcessingThreshold",					_SetContactProcessingThreshold }, 
+
 
 //CLEAN
 { "cleanProxyFromPairs",					_CleanProxyFromPairs }, 
@@ -1051,6 +1043,9 @@ void MOAIBulletBody::RegisterLuaFuncs ( MOAILuaState& state ) {
 { "isActive",						_IsActive },	
 { "getCollidingBodies",				_GetCollidingBodies },	
 
+//setContactProcessingThreshold
+
+
 //NULS
 { NULL, NULL }
 	};
@@ -1058,18 +1053,8 @@ void MOAIBulletBody::RegisterLuaFuncs ( MOAILuaState& state ) {
 	luaL_register ( state, 0, regTable );
 }
 
-
-
-
-
-
-
-
-
-
-
-
 //----------------------------------------------------------------//
+// SO I NEED TO MAKE THIS FOR COLLISION SHAPE ALSO ????
 void MOAIBulletBody::OnDepNodeUpdate () {	
 
 	if ( this->mBody ) {	
@@ -1165,3 +1150,35 @@ void MOAIBulletBody::SetBody ( btRigidBody* body ) {
 	this->mBody = body;
 	body->setUserPointer(this);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//*************************************************************************************************************
+//*************************************************************************************************************
+//*************************************************************************************************************
+//*************************************************************************************************************
+//*************************************************************************************************************
+//MANUALL SET A SHAPE TO A BODY
+//NO LONGER WORKS
+int MOAIBulletBody::_AddToBody ( lua_State* L ) {
+MOAI_LUA_SETUP ( MOAIBulletBody, "UU" )
+MOAIBulletShape* shapeA = state.GetLuaObject < MOAIBulletShape >( 2, true );
+	btTransform t; 
+	t.setIdentity();
+	t.setOrigin(btVector3 ( 0,0,0));
+	t.getBasis().setEulerZYX(0,0,0);
+ 	self->mCompound->addChildShape(t,shapeA->mShape); //MAKE FRIEND CLASS
+return 0;
+};

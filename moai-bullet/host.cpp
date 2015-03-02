@@ -19,9 +19,10 @@ void MOAIBulletAppInitialize () {
 };
 //----------------------------------------------------------------//
 void MOAIBulletContextInitialize () {
-	REGISTER_LUA_CLASS ( MOAIBulletWorld )
-	REGISTER_LUA_CLASS ( MOAIBulletShape )
-	REGISTER_LUA_CLASS ( MOAIBulletTransform )
-	//REGISTER_LUA_CLASS ( MOAIBulletConstraint )
+	REGISTER_LUA_CLASS ( MOAIBulletWorld );
+	REGISTER_LUA_CLASS ( MOAIBulletShape );
+	REGISTER_LUA_CLASS ( MOAIBulletTransform );
+//	REGISTER_LUA_CLASS ( MOAILayerPass );
+//	REGISTER_LUA_CLASS ( MOAIBulletFBO );
 };
 //----------------------------------------------------------------//

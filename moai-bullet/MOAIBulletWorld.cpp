@@ -259,19 +259,8 @@ int MOAIBulletWorld::_create( lua_State* L ) {
 	//DISPATCH
 		self->mWorld->getDispatchInfo().m_useContinuous			= false;
 		self->mWorld->getDispatchInfo().m_enableSPU				= false;
-		self->mWorld->getDispatchInfo().m_allowedCcdPenetration = 0.01f;
-
-////COLLISION CALLBACKS : SHOULD BE SEPREATE
-//self->mCollision =  new MOAIBulletCollisionHandler();
-//self->mCollision->setWorld(self->mWorld);
-//self->mCollision->init();
-//
-////DEBUG DRAW : SHOULD BE SEPERATE
-//self->mDebugDraw = new MOAIBulletDebugDraw ();
-//self->mWorld->setDebugDrawer(self->mDebugDraw );		
-
-
-
+		self->mWorld->getDispatchInfo().m_allowedCcdPenetration = 0.00f;
+		self->mWorld->getDispatchInfo().m_stepCount  =100;
 	return 1;
 }
 
@@ -600,17 +589,17 @@ int MOAIBulletWorld::_addJointFreedom ( lua_State* L ) {
 //*******************************************************************
 	btJoint->setBreakingImpulseThreshold(100.0f);
 	btTransform sliderTransform;
-	btVector3 lowerSliderLimit = btVector3(-10,0,0);
-	btVector3 hiSliderLimit = btVector3(10,0,0);
+	btVector3 lowerSliderLimit		= btVector3(-10,0,0);
+	btVector3 hiSliderLimit			= btVector3(10,0,0);
 
 	btJoint->setLinearLowerLimit(lowerSliderLimit);
 	btJoint->setLinearUpperLimit(hiSliderLimit);
 	btJoint->setAngularLowerLimit(btVector3(-SIMD_PI,0,0));
 	btJoint->setAngularUpperLimit(btVector3(1.5,0,0));
 
-	btJoint->getTranslationalLimitMotor()->m_enableMotor[0] = true;
-	btJoint->getTranslationalLimitMotor()->m_targetVelocity[0] = -5.0f;
-	btJoint->getTranslationalLimitMotor()->m_maxMotorForce[0] = 0.1f;
+	btJoint->getTranslationalLimitMotor()->m_enableMotor[0]		= true;
+	btJoint->getTranslationalLimitMotor()->m_targetVelocity[0]	= -5.0f;
+	btJoint->getTranslationalLimitMotor()->m_maxMotorForce[0]	= 0.1f;
 
 //*******************************************************************
 //*******************************************************************
@@ -832,8 +821,6 @@ int MOAIBulletWorld::_setDrawJointSize ( lua_State* L ) {
 //----------------------------------------------------------------//
 int MOAIBulletWorld::_DrawDebugLua ( lua_State* L ) {
 	MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )	
-	//self->DrawDebug();	
-
 		if ( self->mDebugDraw ) {	
 		MOAIDraw::Bind ();	
 
@@ -852,7 +839,6 @@ int MOAIBulletWorld::_DrawDebugLua ( lua_State* L ) {
 		gfxDevice.setPrimeSize(self->mDebugDraw->mSize*2);
 		gfxDevice.EndPrim ();
 	}
-
 
 	return 0;
 }
@@ -903,7 +889,6 @@ int MOAIBulletWorld::_debugDraw ( lua_State* L ) {
 	return 1;
 }
 //----------------------------------------------------------------//
-
 int MOAIBulletWorld::_testObj ( lua_State* L ) {
 MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
 
@@ -916,11 +901,6 @@ MOAI_LUA_SETUP ( MOAIBulletWorld, "U" )
 
 	return 1;
 }
-
-
-
-
-//----------------------------------------------------------------//
 //----------------------------------------------------------------//
 void MOAIBulletWorld::RegisterLuaClass ( MOAILuaState& state ) {
 	MOAIAction::RegisterLuaClass ( state );		

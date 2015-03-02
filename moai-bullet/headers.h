@@ -9,5 +9,7 @@
 #include <moai-bullet/MOAIBulletShape.h>
 #include <moai-bullet/MOAIBulletTransform.h>
 #include <moai-bullet/MOAIBulletDebugDraw.h>
+//#include <moai-bullet/MOAILayerPass.h>
+//#include <moai-bullet/MOAIBulletFBO.h>
 
 #endif

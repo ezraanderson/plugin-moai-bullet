@@ -21,8 +21,6 @@ private:
 	btVector3* mRot;
 	btVector3* mLoc;
 
-
-
 	static int		_makePlane				( lua_State* L );
 	static int		_makeSphere				( lua_State* L );
 	static int		_makeSphereM			( lua_State* L );

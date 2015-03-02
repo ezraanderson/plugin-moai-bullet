@@ -133,6 +133,9 @@ private:
 //SET
 	static int		_SetCcdMotionThreshold		( lua_State* L );
 	static int		_SetCcdSweptSphereRadius	( lua_State* L );
+	static int		_SetContactProcessingThreshold	( lua_State* L );
+
+
 	
 //GET
 	static int		_GetPosition				( lua_State* L );

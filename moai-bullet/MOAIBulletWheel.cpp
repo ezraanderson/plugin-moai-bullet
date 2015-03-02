@@ -174,10 +174,3 @@ void MOAIBulletWheel::setVehicle (btRaycastVehicle *vehicle) {
 };
 
 
-	static int		_setConnectionPoint			( lua_State* L );
-	static int		_setWheelDirection			( lua_State* L );
-	static int		_wheelAxle					( lua_State* L );
-	static int		_setWheelAxle				( lua_State* L );
-	static int		_setWheelRadius				( lua_State* L );
-	static int		_setFrontWheel				( lua_State* L );
-	static int		_suspensionRestLength		( lua_State* L );
